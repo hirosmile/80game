@@ -62,8 +62,7 @@
 </head>
 <body>
 <header>
-  <div class="studio"><span class="n8">80</span>GAME</div>
-  <div class="tagline">SINGLE-FILE ARCADE ORIGINALS</div>
+  <div class="studio"><span class="n8">80</span>Game</div>
   <div class="select">— GAME SELECT —</div>
 </header>
 
@@ -73,7 +72,7 @@
     <div class="screen"><canvas id="cvSol" width="128" height="96"></canvas></div>
     <div class="meta">
       <div class="genre">[ VERTICAL SHOOTER ]</div>
-      <div class="desc">空と地上を撃ち分ける縦スクロールSTG。エリアを突破し、失われたセクターを取り戻せ。</div>
+      <div class="desc">A vertical shooter with dual air and ground weapons. Break through hostile airspace and reclaim the lost sectors.</div>
       <div class="play">PLAY</div>
     </div>
   </a>
@@ -83,7 +82,7 @@
     <div class="screen"><canvas id="cvDig" width="128" height="96"></canvas></div>
     <div class="meta">
       <div class="genre">[ DIGGING ACTION ]</div>
-      <div class="desc">地中を掘り進む掘削アクション。トンネルを巡らせ、敵を出し抜け。</div>
+      <div class="desc">A tunnel-digging action game. Spear your foes and pump them up until they burst, or drop rocks to crush them all at once.</div>
       <div class="play">PLAY</div>
     </div>
   </a>
@@ -92,8 +91,8 @@
     <div class="marquee">CHUPPY</div>
     <div class="screen"><canvas id="cvChu" width="128" height="96"></canvas></div>
     <div class="meta">
-      <div class="genre">[ PLATFORM ACTION ]</div>
-      <div class="desc">跳んで登ってゴールを目指すプラットフォームアクション。</div>
+      <div class="genre">[ TRAMPOLINE ACTION ]</div>
+      <div class="desc">A trampoline action game. Bounce between floors grabbing treasures while the cats give chase — knock them away with doors.</div>
       <div class="play">PLAY</div>
     </div>
   </a>
@@ -107,6 +106,19 @@
 "use strict";
 const TAU = Math.PI * 2;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// 行文字列スプライトを1ドット=sピクセルで描画（各ゲーム本体と同じドット絵）
+function drawSprite(g, rows, pal, x, y, s, flip){
+  const w = rows[0].length;
+  for(let r=0; r<rows.length; r++){
+    for(let c=0; c<w; c++){
+      const ch = rows[r][flip ? w-1-c : c];
+      if(ch === '.' || !pal[ch]) continue;
+      g.fillStyle = pal[ch];
+      g.fillRect(x + c*s, y + r*s, s, s);
+    }
+  }
+}
 
 // ---- SOLBIRD: 自機が地形の上を飛ぶ ----
 const sol = document.getElementById('cvSol').getContext('2d');
@@ -137,58 +149,297 @@ function drawSol(t){
   sol.restore();
 }
 
-// ---- DIGDIG: 掘られたトンネルと掘削キャラ ----
+// ---- DIGDIG: 掘られた坑道でヤリ→敵をふくらませ破裂させる ----
 const dig = document.getElementById('cvDig').getContext('2d');
+const DIG_P = {H:'#FFFFFF',V:'#2E78E0',L:'#BFD9FF',W:'#F4F6FF',S:'#CDD2E2',K:'#141420',O:'#F87818',C:'#FFC0A0',G:'#A8AEC4',P:'#FF9DB0',M:'#9AA0B4',D:'#5A6072'};
+const DIGGY = [
+"...HHHHHH...","..HHHHHHHH..","..HVVVVVVVH.","..HVWLKKVVH.",
+"..HVWWKKVPH.","..HVVVVVVVH.","..WWWWWWWW..","..WWWWWWMDO.",
+"..WWWWWWMD..","..WWWWWWWW..",".KK...KKKK..",".OO....OOO.."];
+const DIGGY2 = [
+"............","...HHHHHH...","..HHHHHHHH..","..HVVVVVVVH.",
+"..HVWLKKVVH.","..HVWWKKVPH.","..HVVVVVVVH.","..WWWWWWWW..",
+"..WWWWWWMD..","..WWWWWWMDO.",".KKKK...KK..",".OOO....OO.."];
+const DIG_F  = {P:'#F88820',D:'#C25808',A:'#FFE0B0',W:'#F8F8F8',K:'#181828',C:'#FF9E9E'};
+const DIG_FB = {P:'#FFD090',D:'#E0983C',A:'#FFF4D8',W:'#FFFFFF',K:'#302038',C:'#FFC8C8'};
+const FUWAN = [
+".....AA.......","......A.......","....PPPPPP....","..PPPPPPPPPP..",
+".PPPPPPPPPPPP.",".PWWWWPPWWWWP.",".PWWKKPPWWKKP.","PPWWWWPPWWWWPP",
+"PCCPPPPPPPPCCP","PPPPKPPPPKPPPP","PPPPPKKKKPPPPP",".PDDPPPPPPDDP.",
+"..DD......DD..",".DDD......DDD."];
+const G_PAL  = {T:'#28B898',E:'#188068',Y:'#98E8C8',O:'#F88030',W:'#F8F8F8',K:'#E03028',M:'#301820'};
+const G_PALF = {T:'#E8FFF8',E:'#98D8C8',Y:'#FFFFFF',O:'#FFF8B0',W:'#F8F8F8',K:'#E03028',M:'#684858'};
+const GABURA = [
+"...O....O......","..OOO..OOO.....",".TTTTTTTTTTT...","TTTTTTTTTTTTT..",
+"TTTTTTTTTEEEET.","TTTTTTTTTWWKWT.","TTYYYYYTTTTTTT.","TTYYYYYTMWMWMWT",
+"ETTTTTTTTMMMMT.","EETTTTTTTTTTT..",".EE..EE..EE.EE.",".MM..MM..MM.MM."];
+const DIG_LAYERS = ['#F8B838','#E87800','#C84800','#7C2818'];
+const DIG_DK = ['#E09820','#C86000','#A03800','#601C10'];
+const DIG_ENEMIES = [
+  { rows:FUWAN,  pal:DIG_F, palF:DIG_FB, cols:['#F88820','#FFE0B0','#FF9E9E','#F8F8F8'] },
+  { rows:GABURA, pal:G_PAL, palF:G_PALF, cols:['#28B898','#98E8C8','#F88030','#F8F8F8'] },
+];
+// 敵スプライトを中心(cx)・底(baseY)基準・任意倍率で描画
+function drawEnemyScaled(rows, pal, cx, baseY, s, flip){
+  const w = rows[0].length, h = rows.length;
+  const ox = cx - w*s/2, oy = baseY - h*s;
+  for(let r=0;r<h;r++)
+    for(let c=0;c<w;c++){
+      const ch = rows[r][flip ? w-1-c : c];
+      if(ch === '.' || !pal[ch]) continue;
+      dig.fillStyle = pal[ch];
+      dig.fillRect(ox + c*s, oy + r*s, s, s);
+    }
+}
+const dfrac = i => { const x = Math.sin(i*12.9898)*43758.5453; return x - Math.floor(x); };
 function drawDig(t){
-  const W=128, H=96;
-  // 地層
-  const strata = ['#c8843c','#a8641f','#8d4e14','#6e3a0e'];
-  for(let i=0;i<4;i++){ dig.fillStyle=strata[i]; dig.fillRect(0, i*24, W, 24); }
+  const W=128, H=96, SKY=10, floorY=80;
   // 空
-  dig.fillStyle='#123'; dig.fillRect(0,0,W,12);
-  // トンネル（黒い通路）
-  dig.fillStyle='#1a1008';
-  dig.fillRect(56,12,16,52);
-  dig.fillRect(24,48,80,16);
-  // 掘削キャラ（トンネル内を左右に往復）
-  const range = 34;
-  const dx = reduced ? 0 : Math.sin(t*.03)*range;
-  const cx = 64 + dx, cy = 56;
-  dig.fillStyle='#e8e8e8';
-  dig.fillRect(cx-5, cy-5, 10, 10);
-  dig.fillStyle='#3a8bd0';
-  dig.fillRect(cx-5, cy-1, 10, 6);
-  // ドリル（進行方向）
-  const dir = reduced ? 1 : Math.sign(Math.cos(t*.03)) || 1;
-  dig.fillStyle=(t%10<5)?'#e8b93c':'#fff3c0';
-  dig.beginPath();
-  dig.moveTo(cx + dir*5, cy-3); dig.lineTo(cx + dir*11, cy); dig.lineTo(cx + dir*5, cy+3);
-  dig.closePath(); dig.fill();
+  dig.fillStyle='#2040C8'; dig.fillRect(0,0,W,SKY);
+  // 地層（4バンド＋濃色スペックル）
+  const bandH = (H-SKY)/4;
+  for(let L=0; L<4; L++){
+    const y = SKY + L*bandH;
+    dig.fillStyle = DIG_LAYERS[L]; dig.fillRect(0, y, W, bandH);
+    dig.fillStyle = DIG_DK[L];
+    for(let ry=0; ry<bandH; ry+=4)
+      for(let rx=((ry/4)%2)*4; rx<W; rx+=8)
+        dig.fillRect(rx, y+ry, 3, 1);
+  }
+  // 地表の草
+  dig.fillStyle='#2E8B3A'; dig.fillRect(0, SKY-2, W, 2);
+  dig.fillStyle='#48B857';
+  for(let i=0;i<W/8;i++) dig.fillRect(i*8+2, SKY-4, 2, 2);
+  // 既に掘られている坑道（横一本・全幅）＋左右の縦スタブ
+  dig.fillStyle='#2A1408';
+  dig.fillRect(0, 50, W, 32);            // 横坑道
+  dig.fillRect(20, SKY, 14, 42);         // 左の縦スタブ
+  dig.fillRect(96, SKY, 14, 42);         // 右の縦スタブ
+
+  // タイムライン
+  const enemy = DIG_ENEMIES[reduced ? 0 : Math.floor(t/315)%2];
+  const heroStop = 40, enemyStop = 90;
+  const heroEnterEnd = 58, enemyEnterEnd = 108, harpoonEnd = 122;
+  const pumpStep = 13, pumpEnd = harpoonEnd + pumpStep*4;   // 4段階
+  const burstEnd = pumpEnd + 26;
+  const heroExitEnd = burstEnd + 96;
+  const cycle = heroExitEnd + 22;
+  const ph = reduced ? (harpoonEnd + pumpStep*2) : (t % cycle);
+
+  // 主人公の位置と歩き
+  let heroX, heroWalk;
+  if(ph < heroEnterEnd){ heroX = -18 + (heroStop-(-18))*(ph/heroEnterEnd); heroWalk = true; }
+  else if(ph < burstEnd){ heroX = heroStop; heroWalk = false; }
+  else if(ph < heroExitEnd){ heroX = heroStop + (W+20-heroStop)*((ph-burstEnd)/(heroExitEnd-burstEnd)); heroWalk = true; }
+  else { heroX = W + 40; heroWalk = false; }
+
+  // 敵の位置・膨張
+  let enemyX = null, inflate = 0, bursting = false, burstT = 0;
+  if(ph >= heroEnterEnd && ph < enemyEnterEnd){
+    enemyX = (W+18) + (enemyStop-(W+18))*((ph-heroEnterEnd)/(enemyEnterEnd-heroEnterEnd));
+  } else if(ph >= enemyEnterEnd && ph < pumpEnd){
+    enemyX = enemyStop;
+    if(ph >= harpoonEnd) inflate = Math.min(4, (ph-harpoonEnd)/pumpStep);
+  } else if(ph >= pumpEnd && ph < burstEnd){
+    bursting = true; burstT = ph - pumpEnd;
+  }
+
+  // モリ（ヤリ）：主人公前方→敵へ
+  if(enemyX !== null && ph >= enemyEnterEnd && ph < pumpEnd){
+    const reach = ph < harpoonEnd ? (ph-enemyEnterEnd)/(harpoonEnd-enemyEnterEnd) : 1;
+    const hx0 = heroStop + 12, hy = 64;
+    const ew = enemy.rows[0].length * 2*(1+inflate*0.45);
+    const hx1 = hx0 + ((enemyX - ew/2) - hx0) * reach;
+    dig.strokeStyle = '#CDD2E2'; dig.lineWidth = 2;
+    dig.beginPath(); dig.moveTo(hx0, hy); dig.lineTo(hx1, hy); dig.stroke();
+    dig.fillStyle = '#F4F6FF'; dig.fillRect(hx1-2, hy-2, 4, 4);
+  }
+
+  // 敵（ふくらむ・段階ごとに白フラッシュ）
+  if(enemyX !== null){
+    const s = 2*(1 + inflate*0.45);
+    let pal = enemy.pal;
+    if(inflate > 0){
+      const stagePhase = (ph - harpoonEnd) % pumpStep;
+      if(stagePhase < 4) pal = enemy.palF;
+    }
+    drawEnemyScaled(enemy.rows, pal, enemyX, floorY-2, s, true);
+  }
+
+  // 破裂（花火状パーティクル）
+  if(bursting){
+    const ox = enemyStop, oy = 64, dur = 26;
+    for(let i=0;i<20;i++){
+      const a = (i/20)*Math.PI*2 + 0.3;
+      const sp = 0.9 + dfrac(i)*1.3;
+      const px = ox + Math.cos(a)*sp*burstT;
+      const py = oy + Math.sin(a)*sp*burstT;
+      dig.globalAlpha = Math.max(0, 1 - burstT/dur);
+      dig.fillStyle = enemy.cols[i % enemy.cols.length];
+      dig.fillRect(Math.round(px)-1, Math.round(py)-1, 2, 2);
+    }
+    dig.globalAlpha = 1;
+  }
+
+  // 主人公（左→右。歩行アニメ）
+  if(heroX > -20 && heroX < W+30){
+    const spr = heroWalk ? ((Math.floor(t/6)%2) ? DIGGY : DIGGY2) : DIGGY;
+    drawSprite(dig, spr, DIG_P, Math.round(heroX)-12, floorY-24, 2, false);
+  }
 }
 
-// ---- CHUPPY: 足場を跳ねるキャラ ----
+// ---- CHUPPY: ネズミの警官がお宝アイテムを次々に回収 ----
 const chu = document.getElementById('cvChu').getContext('2d');
+const CHU_M = {K:'#101018',W:'#f2f2f2',B:'#1fa89a',P:'#ff9a5c'};
+const MOUSE = [
+"..KK........KK..",".KWWK......KWWK.",".KWWWK....KWWWK.",".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..","..KWWKWWWWWKWK..","..KWWWWPPWWWWK..","..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...","...KBBBBBBBBK...","..KBWBBBBBBWBK..","..KBBBBBBBBBBK..",
+"...KBBBBBBBBK...","...KBBKKKKBBK...","....KBK..KBK....","....KK....KK...."];
+const MOUSE_W1 = [
+"..KK........KK..",".KWWK......KWWK.",".KWWWK....KWWWK.",".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..","..KWWKWWWWWKWK..","..KWWWWPPWWWWK..","..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...","...KBBBBBBBBK...","..KBWBBBBBBWBK..","..KBBBBBBBBBBK..",
+"...KBBBBBBBBK...","..KWBK....KBK...","..KK.......KK...","................"];
+const MOUSE_W2 = [
+"..KK........KK..",".KWWK......KWWK.",".KWWWK....KWWWK.",".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..","..KWWKWWWWWKWK..","..KWWWWPPWWWWK..","..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...","...KBBBBBBBBK...","..KBWBBBBBBWBK..","..KBBBBBBBBBBK..",
+"...KBBBBBBBBK...",".....KBKKBK.....",".....KK..KK.....","................"];
+const MOUSE_JUMP = [
+"W..KK......KK..W",".KWWK......KWWK.",".KWWWK....KWWWK.",".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..","..KWWKWWWWWKWK..","..KWWWWPPWWWWK..","..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...","..KKBBBBBBBBKK..",".KWKBBBBBBBBKWK.","...KBBBBBBBBK...",
+"...KBBBBBBBBK...","....KBBKKBBK....","....KWBKKBWK....","................"];
+const CHU_C = {K:'#101018',P:'#f2843c',W:'#ffffff'};
+const CAT = [
+"....K......K....","...KPK....KPK...","...KPPK..KPPK...","..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..","..KPPPPPWWKPPK..","..KPPPPPWWKPWWK.","..KPPPPPPPPPPPK.",
+"...KPPPPPPPPPK..","K..KPPPPPPPPK...","KK.KPPPPPPPPK...",".KKKPPPPPPPPK...",
+"...KPPKPPPPKK...","...KPK...KPK....","...KPK...KPK....","...KK.....KK...."];
+const CAT_W2 = [
+"....K......K....","...KPK....KPK...","...KPPK..KPPK...","..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..","..KPPPPPWWKPPK..","..KPPPPPWWKPWWK.","..KPPPPPPPPPPPK.",
+"...KPPPPPPPPPK..","K..KPPPPPPPPK...","KK.KPPPPPPPPK...",".KKKPPPPPPPPK...",
+"...KPPKPPPPKK...",".....KPK.KPK....",".....KPK.KPK....",".....KK...KK...."];
+const CHU_B = {K:'#101018',P:'#ff4136',W:'#ffe66d'};
+const BOSS_W1 = [
+"....K......K....","...KPK....KPK...","...KPPK..KPPK...","..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..","..KPPPPPWWKPPK..","..KPPPPPWWKPWWK.","..KPPPPPPPPPPPK.",
+"..KPPPPPPPPPPK..","K.KPPPPPPPPPPK..","KKKPPPPPPPPPPK..",".KPPPPPPPPPPPK..",
+"..KPPKPPPPPKPK..","...KPK...KPK....","...KPK...KPK....","...KK.....KK...."];
+const BOSS_W2 = [
+"....K......K....","...KPK....KPK...","...KPPK..KPPK...","..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..","..KPPPPPWWKPPK..","..KPPPPPWWKPWWK.","..KPPPPPPPPPPPK.",
+"..KPPPPPPPPPPK..","K.KPPPPPPPPPPK..","KKKPPPPPPPPPPK..",".KPPPPPPPPPPPK..",
+"..KPPKPPPPPKPK..",".....KPK.KPK....",".....KPK.KPK....",".....KK...KK...."];
+// お宝アイテム（ゲーム本体 drawItemIcon と同じ・sで拡大）
+function drawItem(t, cx, baseY, s){
+  const T = baseY - 14*s;
+  const R = (dx,dy,w,h,c)=>{ chu.fillStyle=c; chu.fillRect(cx+dx*s, T+dy*s, w*s, h*s); };
+  if(t===0){ // ラジカセ
+    R(-4,0,8,1,'#9aa0aa'); R(-4,1,1,2,'#9aa0aa'); R(3,1,1,2,'#9aa0aa');
+    R(-7,3,14,10,'#3a3f48');
+    R(-6,5,4,4,'#cfd4dc'); R(-5,6,2,2,'#2a2f38');
+    R(2,5,4,4,'#cfd4dc');  R(3,6,2,2,'#2a2f38');
+    R(-1,5,2,2,'#6cf');
+  } else if(t===1){ // ブラウン管テレビ
+    R(-3,0,1,1,'#cfd4dc'); R(-2,1,1,1,'#cfd4dc'); R(-1,2,1,1,'#cfd4dc');
+    R(3,0,1,1,'#cfd4dc');  R(2,1,1,1,'#cfd4dc');  R(1,2,1,1,'#cfd4dc');
+    R(-7,3,14,9,'#8a5a2a');
+    R(-6,4,9,7,'#3ad0ff'); R(-6,4,9,1,'#bff');
+    R(4,4,2,2,'#333'); R(4,7,2,2,'#333');
+    R(-5,12,2,1,'#5a3a18'); R(3,12,2,1,'#5a3a18');
+  } else if(t===2){ // パソコン
+    R(-6,0,12,9,'#cfd4dc');
+    R(-5,1,10,6,'#3a6ce0'); R(-5,1,10,1,'#9bf');
+    R(-1,9,2,2,'#9aa0aa');
+    R(-4,11,8,2,'#9aa0aa');
+  } else if(t===3){ // 絵画
+    R(-6,0,12,13,'#e8b93c'); R(-5,1,10,11,'#a8801c');
+    R(-4,2,8,9,'#6b4a86');
+    R(-2,3,4,2,'#3a2a18');
+    R(-2,4,4,3,'#f2c9a0');
+    R(-3,7,6,4,'#2d6a4f');
+  } else if(t===4){ // ダイヤ
+    R(-4,1,8,1,'#8ef0ff'); R(-5,2,10,1,'#8ef0ff');
+    R(-6,3,12,2,'#39cccc'); R(-5,5,10,1,'#39cccc');
+    R(-4,6,8,1,'#2aa'); R(-3,7,6,1,'#2aa');
+    R(-2,8,4,1,'#2aa'); R(-1,9,2,1,'#188');
+    R(-4,1,8,1,'#fff'); R(-1,3,1,4,'#bff');
+  }
+}
+const ITEM_PTS = [150,250,400,600,900];
+function chuBeam(x, w, y){
+  chu.fillStyle='#b8862e'; chu.fillRect(x, y, w, 5);
+  chu.fillStyle='#eec25a'; chu.fillRect(x, y, w, 2);
+  chu.fillStyle='#7a561a';
+  for(let tx=x+3; tx<x+w-2; tx+=8) chu.fillRect(tx, y+3, 2, 2);
+}
 function drawChu(t){
-  const W=128, H=96;
-  chu.fillStyle='#101a2e'; chu.fillRect(0,0,W,H);
-  // 星
-  chu.fillStyle='#26304a';
-  [[12,10],[100,16],[52,8],[118,40],[8,50],[70,20]].forEach(p=>chu.fillRect(p[0],p[1],2,2));
-  // 足場
-  chu.fillStyle='#7ec8ff';
-  const plats = [[8,80,44],[76,80,44],[42,52,44]];
-  plats.forEach(p=>{ chu.fillRect(p[0],p[1],p[2],6);
-    chu.fillStyle='#4a86b8'; chu.fillRect(p[0],p[1]+6,p[2],3); chu.fillStyle='#7ec8ff'; });
-  // キャラ（中央足場へ放物線ジャンプ）
-  const ph = reduced ? 0 : Math.abs(Math.sin(t*.04));
-  const cx = 64, cy = 44 - ph*22;
-  chu.fillStyle='#ffd76a';
-  chu.fillRect(cx-6, cy-10, 12, 12);
-  chu.fillStyle='#1a1a1a';
-  chu.fillRect(cx-3, cy-6, 2, 3); chu.fillRect(cx+2, cy-6, 2, 3);
-  // 足
-  chu.fillStyle='#e8b93c';
-  chu.fillRect(cx-5, cy+2, 4, 3); chu.fillRect(cx+1, cy+2, 4, 3);
+  const W=128, H=96, IS=1.7, floorY=70, S=2, HW=16;
+  chu.fillStyle='#241d38'; chu.fillRect(0,0,W,H);
+  chu.fillStyle='#000';    chu.fillRect(0,0,W,8);
+  chu.fillStyle='#3a6ea5'; chu.fillRect(0,6,W,2);
+  chu.fillStyle='#322a52'; chu.fillRect(0,8,4,H-8); chu.fillRect(W-4,8,4,H-8);
+  chuBeam(4, W-8, floorY);
+  chu.fillStyle='#141426'; chu.fillRect(4,floorY+5,W-8,H-(floorY+5));
+  chu.fillStyle='#2f9e6e'; chu.fillRect(0,94,W,2);
+
+  const feetY = floorY;
+  const speed = 0.85;
+  const startX = -22, endX = W + 22, exitMargin = 22;
+  const catOffs = [30, 52, 74];
+  const bossOff = 168;                                   // ボスは大きく遅れて最後尾
+  const bossExitPh = Math.round((endX + exitMargin + bossOff - startX) / speed);
+  const cycle = bossExitPh + 24;                         // ボスが右へ消えてから次の回へ
+  const ph = reduced ? Math.round((60 - startX) / speed) : (t % cycle);
+  const cyIdx = reduced ? 0 : Math.floor(t / cycle) % 5; // 1周ごとに1種類ずつ
+  const mx = startX + ph * speed;                        // マウス中心x
+  const liftDur = 14, popDur = 24;
+
+  // このループで出す1つのお宝（中央付近）
+  const itemX = 68;
+  const collectPh = Math.round((itemX - startX) / speed);
+  const dt = ph - collectPh;
+  if(dt < 0){ drawItem(cyIdx, itemX, feetY, IS); }
+  else if(dt < liftDur){
+    const pr = dt/liftDur, e = 1-(1-pr)*(1-pr);
+    chu.globalAlpha = Math.max(0, 1-pr);
+    drawItem(cyIdx, itemX, feetY - 6 - e*20, IS);
+    chu.globalAlpha = 1;
+  }
+
+  // 追いかけるネコ3匹＋大きく遅れてボス猫
+  const CHASERS = [
+    {off:catOffs[0], spr:[CAT, CAT_W2],      pal:CHU_C},
+    {off:catOffs[1], spr:[CAT, CAT_W2],      pal:CHU_C},
+    {off:catOffs[2], spr:[CAT, CAT_W2],      pal:CHU_C},
+    {off:bossOff,    spr:[BOSS_W1, BOSS_W2], pal:CHU_B},
+  ];
+  for(let c=0;c<CHASERS.length;c++){
+    const ch = CHASERS[c];
+    const cx = mx - ch.off;
+    if(cx < startX - 20 || cx > endX + 20) continue;
+    const fr = reduced ? 0 : (Math.floor(t/6 + c)%2);
+    const hop = fr ? 0 : 1;                              // 歩行の1px跳ね
+    drawSprite(chu, ch.spr[fr], ch.pal, Math.round(cx)-16, floorY-32-hop, S, false);
+  }
+
+  // マウス（左外→右外。歩きアニメは止めない）
+  if(mx > startX - 20 && mx < endX + 20){
+    const spr = reduced ? MOUSE_W1 : ((Math.floor(t/5)%2) ? MOUSE_W1 : MOUSE_W2);
+    drawSprite(chu, spr, CHU_M, Math.round(mx)-HW, floorY-32, S, false);
+  }
+
+  // ＋得点ポップ（回収直後に頭上へ）
+  if(!reduced && dt >= 0 && dt < popDur){
+    const k = dt / popDur;
+    chu.globalAlpha = Math.max(0, 1-k);
+    chu.fillStyle = '#0f8'; chu.font = 'bold 10px monospace'; chu.textAlign = 'center';
+    chu.fillText('+'+ITEM_PTS[cyIdx], itemX, feetY-34-k*10);
+    chu.globalAlpha = 1; chu.textAlign = 'left';
+  }
 }
 
 let f = 0;
