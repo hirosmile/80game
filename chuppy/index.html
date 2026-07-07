@@ -5,26 +5,27 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CHUPPY</title>
 <style>
-  html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;touch-action:none;
+  html,body{margin:0;padding:0;background:#000;width:100%;height:100%;overflow:hidden;touch-action:none;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:monospace}
-  #wrap{display:flex;flex-direction:column;height:100dvh}
-  #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0}
-  #cv{image-rendering:pixelated;background:#000;display:block;touch-action:none}
+  #wrap{display:flex;flex-direction:column;width:100%;height:100dvh;overflow:hidden}
+  #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
+  #cv{image-rendering:pixelated;background:#000;display:block;touch-action:none;max-width:100%;max-height:100%}
   /* ---- controller deck ---- */
-  #deck{flex:0 0 auto;background:#8f0f13;border-top:4px solid #5c0a0d;
+  #deck{flex:0 0 auto;box-sizing:border-box;width:100%;overflow:hidden;
+    background:#8f0f13;border-top:4px solid #5c0a0d;
     display:flex;align-items:center;justify-content:space-between;
-    padding:12px 18px calc(12px + env(safe-area-inset-bottom));}
-  #dpad{position:relative;width:128px;height:128px}
+    padding:min(12px,3vw) min(18px,4vw) calc(min(12px,3vw) + env(safe-area-inset-bottom));}
+  #dpad{position:relative;width:min(128px,34vw);height:min(128px,34vw)}
   #dcross{position:absolute;inset:8px;background:#1c1c1e;border-radius:6px;
     clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%);
     box-shadow:inset 0 -4px 0 rgba(0,0,0,.5)}
   .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
   #dL{left:0}#dR{right:0}
   .dz.on ~ #dcross{filter:brightness(1.25)}
-  #btns{display:flex;align-items:center;gap:12px}
-  .ab{width:64px;height:64px;border-radius:50%;background:#1c1c1e;color:#e8b93c;
+  #btns{display:flex;align-items:center;gap:min(12px,3vw)}
+  .ab{width:min(64px,17vw);height:min(64px,17vw);border-radius:50%;background:#1c1c1e;color:#e8b93c;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-weight:bold;font-size:20px;letter-spacing:1px;
+    font-weight:bold;font-size:min(20px,5.5vw);letter-spacing:1px;
     box-shadow:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4)}
   #bB{color:#7ec8ff}
   .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
@@ -99,11 +100,11 @@ const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 let RS=2; // 内部レンダリング倍率(整数)= ピクセルパーフェクト維持
 function resize(){
-  const deck=document.getElementById('deck');
-  const availW=window.innerWidth;
-  const availH=Math.max(1, window.innerHeight-deck.offsetHeight);
-  // アスペクト比を保って利用可能領域いっぱいまで拡大(スマホでは横幅にフィット)
-  const s=Math.min(availW/W, availH/H);                 // 論理px→CSS px
+  const stage=document.getElementById('stage');
+  // 実際の表示領域(stage)を測定してフィット(innerHeightと100dvhのズレを回避)
+  const availW=stage.clientWidth||window.innerWidth||W;
+  const availH=stage.clientHeight||1;
+  const s=Math.min(availW/W, availH/H);                 // 論理px→CSS px(縦横どちらもはみ出さない)
   const dpr=window.devicePixelRatio||1;
   RS=Math.max(1, Math.min(6, Math.round(s*dpr)));       // 整数バッキング倍率
   if(cv.width!==W*RS){ cv.width=W*RS; cv.height=H*RS; }
@@ -111,6 +112,8 @@ function resize(){
   cv.style.width=(W*s)+'px'; cv.style.height=(H*s)+'px';
 }
 window.addEventListener('resize',resize);
+window.addEventListener('orientationchange',()=>{ resize(); setTimeout(resize,200); });
+if(window.visualViewport){ window.visualViewport.addEventListener('resize',resize); }
 
 // ---------- input ----------
 const inp={dir:0, l:false, r:false, aEdge:false, bHeld:false};
@@ -1442,7 +1445,10 @@ function tick(){
 }
 newRound();
 resize();
+requestAnimationFrame(resize);
 setTimeout(resize,100);
+setTimeout(resize,400);
+window.addEventListener('load',resize);
 requestAnimationFrame(tick);
 </script>
 </body>
