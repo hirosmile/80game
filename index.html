@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>80GAME — GAME SELECT</title>
+<meta name="theme-color" content="#8f0f13">
+<style>
+  :root {
+    --bg:#0a0a12; --deck-bg:#8f0f13; --deck-edge:#5c0a0d;
+    --control-base:#1c1c1e; --gold:#e8b93c; --blue:#7ec8ff;
+    --green:#7dff9e; --ink:#e8e8d0; --dim:#8a90a8;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { min-height:100%; background:var(--bg); font-family:'Courier New', monospace; color:var(--ink); }
+  body { display:flex; flex-direction:column; align-items:center; position:relative; overflow-x:hidden; }
+  /* CRT走査線 */
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:9;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px); }
+
+  header { text-align:center; padding:52px 20px 10px; }
+  .studio { font-size:clamp(40px,11vw,72px); letter-spacing:.18em; line-height:1; font-weight:bold;
+    color:var(--gold); text-shadow:0 0 22px rgba(232,185,60,.55), 4px 4px 0 var(--deck-edge); }
+  .studio .n8 { color:#ff5a6e; text-shadow:0 0 22px rgba(255,90,110,.6), 4px 4px 0 var(--deck-edge); }
+  .tagline { margin-top:12px; font-size:11px; letter-spacing:.3em; color:var(--dim); }
+  .select { margin:34px 0 6px; font-size:14px; font-weight:bold; letter-spacing:.4em; color:var(--green);
+    text-shadow:0 0 10px rgba(125,255,158,.5); }
+
+  main { width:100%; max-width:960px; padding:18px 18px 30px;
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(250px, 1fr)); gap:20px; }
+
+  .cab { display:flex; flex-direction:column; text-decoration:none; color:var(--ink);
+    background:var(--control-base); border:1px solid #2c2c31; border-radius:10px; overflow:hidden;
+    box-shadow:inset 0 -6px 0 rgba(0,0,0,.5), 0 4px 14px rgba(0,0,0,.5);
+    transition:transform .12s, box-shadow .12s; }
+  .cab:hover, .cab:focus-visible { transform:translateY(-4px);
+    box-shadow:inset 0 -6px 0 rgba(0,0,0,.5), 0 10px 24px rgba(0,0,0,.65); outline:none; }
+  .cab:focus-visible .marquee { filter:brightness(1.3); }
+  .marquee { padding:9px 12px; font-weight:bold; letter-spacing:.25em; font-size:15px; text-align:center;
+    background:var(--deck-bg); border-bottom:4px solid var(--deck-edge); }
+  .screen { position:relative; aspect-ratio:4/3; background:#123; }
+  .screen canvas { position:absolute; inset:0; width:100%; height:100%; image-rendering:pixelated; }
+  .meta { padding:13px 14px 16px; display:flex; flex-direction:column; gap:8px; flex:1; }
+  .genre { font-size:10px; letter-spacing:.2em; }
+  .desc { font-size:12px; line-height:1.7; color:#c6cec6; flex:1; }
+  .play { align-self:center; margin-top:4px; font-size:13px; font-weight:bold; letter-spacing:.3em;
+    color:#ff5a6e; text-shadow:0 0 10px rgba(255,90,110,.6);
+    animation:blink 1.05s steps(1,end) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+  .cab.solbird .genre { color:var(--green); }
+  .cab.digdig  .genre { color:var(--gold); }
+  .cab.chuppy  .genre { color:var(--blue); }
+
+  footer { padding:10px 20px calc(26px + env(safe-area-inset-bottom)); text-align:center; }
+  .credit { font-size:10px; letter-spacing:.2em; color:#4a5170; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .play { animation:none; }
+    .cab, .cab:hover { transition:none; transform:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="studio"><span class="n8">80</span>GAME</div>
+  <div class="tagline">SINGLE-FILE ARCADE ORIGINALS</div>
+  <div class="select">— GAME SELECT —</div>
+</header>
+
+<main>
+  <a class="cab solbird" href="solbird/">
+    <div class="marquee">SOLBIRD</div>
+    <div class="screen"><canvas id="cvSol" width="128" height="96"></canvas></div>
+    <div class="meta">
+      <div class="genre">[ VERTICAL SHOOTER ]</div>
+      <div class="desc">空と地上を撃ち分ける縦スクロールSTG。エリアを突破し、失われたセクターを取り戻せ。</div>
+      <div class="play">PLAY</div>
+    </div>
+  </a>
+
+  <a class="cab digdig" href="digdig/">
+    <div class="marquee">DIGDIG</div>
+    <div class="screen"><canvas id="cvDig" width="128" height="96"></canvas></div>
+    <div class="meta">
+      <div class="genre">[ DIGGING ACTION ]</div>
+      <div class="desc">地中を掘り進む掘削アクション。トンネルを巡らせ、敵を出し抜け。</div>
+      <div class="play">PLAY</div>
+    </div>
+  </a>
+
+  <a class="cab chuppy" href="chuppy/">
+    <div class="marquee">CHUPPY</div>
+    <div class="screen"><canvas id="cvChu" width="128" height="96"></canvas></div>
+    <div class="meta">
+      <div class="genre">[ PLATFORM ACTION ]</div>
+      <div class="desc">跳んで登ってゴールを目指すプラットフォームアクション。</div>
+      <div class="play">PLAY</div>
+    </div>
+  </a>
+</main>
+
+<footer>
+  <div class="credit">© 2026 80GAME&nbsp;&nbsp;ALL RIGHTS RESERVED</div>
+</footer>
+
+<script>
+"use strict";
+const TAU = Math.PI * 2;
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// ---- SOLBIRD: 自機が地形の上を飛ぶ ----
+const sol = document.getElementById('cvSol').getContext('2d');
+function drawSol(t){
+  const W=128, H=96, TILE=8;
+  const scroll = reduced ? 0 : t * 0.4;
+  for(let ry=-1; ry<=H/TILE; ry++){
+    const row = Math.floor(scroll/TILE) + (H/TILE - ry);
+    const sy = ry*TILE + (scroll % TILE) - TILE;
+    for(let c=0;c<W/TILE;c++){
+      let v = Math.sin(row*127.1 + c*57.3)*43758.5; v -= Math.floor(v);
+      sol.fillStyle = v>.88 ? '#1b4d1f' : ((row+c)%2 ? '#2e7d32' : '#33843a');
+      sol.fillRect(c*TILE, sy, TILE, TILE);
+    }
+  }
+  const px = 64 + (reduced ? 0 : Math.sin(t*.02)*22), py = 62;
+  sol.save(); sol.translate(px, py);
+  sol.fillStyle='rgba(0,0,0,.28)';
+  sol.beginPath(); sol.ellipse(7,13,7,3.5,0,0,TAU); sol.fill();
+  sol.fillStyle='#e0e0e8';
+  sol.beginPath();
+  sol.moveTo(0,-11); sol.lineTo(5,-2); sol.lineTo(13,5); sol.lineTo(13,9);
+  sol.lineTo(4,6); sol.lineTo(0,10); sol.lineTo(-4,6); sol.lineTo(-13,9);
+  sol.lineTo(-13,5); sol.lineTo(-5,-2); sol.closePath(); sol.fill();
+  sol.fillStyle='#6ac8ff'; sol.fillRect(-2.5,-7,5,8);
+  sol.fillStyle = (t%12<6)?'#6ac8ff':'#c0e8ff';
+  sol.fillRect(-3,10,6,3+((t%12<6)?2:0));
+  sol.restore();
+}
+
+// ---- DIGDIG: 掘られたトンネルと掘削キャラ ----
+const dig = document.getElementById('cvDig').getContext('2d');
+function drawDig(t){
+  const W=128, H=96;
+  // 地層
+  const strata = ['#c8843c','#a8641f','#8d4e14','#6e3a0e'];
+  for(let i=0;i<4;i++){ dig.fillStyle=strata[i]; dig.fillRect(0, i*24, W, 24); }
+  // 空
+  dig.fillStyle='#123'; dig.fillRect(0,0,W,12);
+  // トンネル（黒い通路）
+  dig.fillStyle='#1a1008';
+  dig.fillRect(56,12,16,52);
+  dig.fillRect(24,48,80,16);
+  // 掘削キャラ（トンネル内を左右に往復）
+  const range = 34;
+  const dx = reduced ? 0 : Math.sin(t*.03)*range;
+  const cx = 64 + dx, cy = 56;
+  dig.fillStyle='#e8e8e8';
+  dig.fillRect(cx-5, cy-5, 10, 10);
+  dig.fillStyle='#3a8bd0';
+  dig.fillRect(cx-5, cy-1, 10, 6);
+  // ドリル（進行方向）
+  const dir = reduced ? 1 : Math.sign(Math.cos(t*.03)) || 1;
+  dig.fillStyle=(t%10<5)?'#e8b93c':'#fff3c0';
+  dig.beginPath();
+  dig.moveTo(cx + dir*5, cy-3); dig.lineTo(cx + dir*11, cy); dig.lineTo(cx + dir*5, cy+3);
+  dig.closePath(); dig.fill();
+}
+
+// ---- CHUPPY: 足場を跳ねるキャラ ----
+const chu = document.getElementById('cvChu').getContext('2d');
+function drawChu(t){
+  const W=128, H=96;
+  chu.fillStyle='#101a2e'; chu.fillRect(0,0,W,H);
+  // 星
+  chu.fillStyle='#26304a';
+  [[12,10],[100,16],[52,8],[118,40],[8,50],[70,20]].forEach(p=>chu.fillRect(p[0],p[1],2,2));
+  // 足場
+  chu.fillStyle='#7ec8ff';
+  const plats = [[8,80,44],[76,80,44],[42,52,44]];
+  plats.forEach(p=>{ chu.fillRect(p[0],p[1],p[2],6);
+    chu.fillStyle='#4a86b8'; chu.fillRect(p[0],p[1]+6,p[2],3); chu.fillStyle='#7ec8ff'; });
+  // キャラ（中央足場へ放物線ジャンプ）
+  const ph = reduced ? 0 : Math.abs(Math.sin(t*.04));
+  const cx = 64, cy = 44 - ph*22;
+  chu.fillStyle='#ffd76a';
+  chu.fillRect(cx-6, cy-10, 12, 12);
+  chu.fillStyle='#1a1a1a';
+  chu.fillRect(cx-3, cy-6, 2, 3); chu.fillRect(cx+2, cy-6, 2, 3);
+  // 足
+  chu.fillStyle='#e8b93c';
+  chu.fillRect(cx-5, cy+2, 4, 3); chu.fillRect(cx+1, cy+2, 4, 3);
+}
+
+let f = 0;
+function loop(){
+  requestAnimationFrame(loop);
+  f++;
+  if(reduced && f > 1) return; // 動きを抑える設定なら静止画1枚
+  drawSol(f); drawDig(f); drawChu(f);
+}
+loop();
+</script>
+</body>
+</html>
