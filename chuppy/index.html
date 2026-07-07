@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>CHUPPY</title>
+<meta name="theme-color" content="#8f0f13">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CHUPPY">
+<style>
+  html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:monospace}
+  #wrap{display:flex;flex-direction:column;height:100dvh}
+  #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0}
+  #cv{image-rendering:pixelated;background:#000;display:block}
+  /* ---- controller deck ---- */
+  #deck{flex:0 0 auto;background:#8f0f13;border-top:4px solid #5c0a0d;
+    display:flex;align-items:center;justify-content:space-between;
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));}
+  #dpad{position:relative;width:128px;height:128px}
+  #dcross{position:absolute;inset:8px;background:#1c1c1e;border-radius:6px;
+    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%);
+    box-shadow:inset 0 -4px 0 rgba(0,0,0,.5)}
+  .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
+  #dL{left:0}#dR{right:0}
+  .dz.on ~ #dcross{filter:brightness(1.25)}
+  #btns{display:flex;align-items:center;gap:12px}
+  .ab{width:64px;height:64px;border-radius:50%;background:#1c1c1e;color:#e8b93c;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    font-weight:bold;font-size:20px;letter-spacing:1px;
+    box-shadow:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4)}
+  #bB{color:#7ec8ff}
+  .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
+  .ab.on{filter:brightness(1.4);transform:translateY(2px)}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="stage"><canvas id="cv" width="256" height="368"></canvas></div>
+  <div id="deck">
+    <div id="dpad">
+      <div class="dz" id="dL"></div>
+      <div class="dz" id="dR"></div>
+      <div id="dcross"></div>
+    </div>
+    <div id="btns">
+      <div class="ab" id="bB">B</div>
+      <div class="ab" id="bA">A</div>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+/* ============================================================
+   HOPCOP — trampoline action prototype (Mappy-inspired)
+   single-file / smartphone browser / integer-scaled pixels
+   ============================================================ */
+const W=256, H=368, TILE=16, COLS=40, WORLD=COLS*TILE;
+const FLOORY=[336,288,240,192,144,96];         // feet-y of each floor (0=ground) 48px間隔
+const DOORH=40;                                 // ドアの高さ(部屋いっぱい)
+const SHAFTS=[[3,5],[12,14],[20,22],[28,30],[35,37]]; // [c0,c1) 2-tile shafts
+const GUP=0.049, GDOWN=0.28;                   // 上昇はさらにゆっくり/下降はキビキビ
+const RISECAP=8, FALLCAP=5;                     // 速度上限
+// バウンスは毎回一定で最上階の上まで届く(本家準拠)。ピット(y=226)から最上階(48)+余裕12px
+const BOUNCE_V=5.16;   // 頂点高は維持、上昇約105フレームでさらにゆっくり
+const TRAMP_BREAK=3;                            // 緑→黄→赤、4回目の接触で破れる
+const TRAMP_Y=354;                              // トランポリンは最下階の床より下のピット内
+const KILL_Y=364;                               // ピット底より下に落ちたら死亡
+const TRAMP_COL=['#2ecc40','#ffdc00','#ff4136'];
+
+const ITEMDEF=[
+  {name:'ラジオ', pts:150},
+  {name:'テレビ', pts:250},
+  {name:'パソコン', pts:400},
+  {name:'めいが', pts:600},
+  {name:'きんこ', pts:900},
+];
+// HOPCOP独自スコアテーブル(原作のカーブと差別化)
+const WAVE_PTS=[300,700,1200,1800,2500,3300,4200,5200]; // パワードア波:独自点数列
+const CHAIN_STEP=0.5, CHAIN_MAX=6;                       // チェイン倍率 最大4倍(1+6*0.5)
+const BOSS_WAVE_MULT=3;                                  // ボス巻き込み ×3
+const STUN_PTS=150;                                      // ドア気絶
+const DOORS0=[
+  {l:1,c:8, d: 1,p:0},{l:1,c:32,d:-1,p:1},   // B中央 / E中央(パワー)
+  {l:2,c:16,d: 1,p:0},{l:2,c:27,d:-1,p:0},   // C中央 / D右端
+  {l:3,c:5, d: 1,p:0},{l:3,c:24,d: 1,p:1},   // B左端 / D中央(パワー)
+  {l:4,c:11,d:-1,p:0},{l:4,c:34,d:-1,p:0},   // B右端 / E右端
+];
+const ITEMS0=[
+  {l:1,c:6, t:0},{l:4,c:23,t:0},
+  {l:1,c:26,t:1},{l:3,c:33,t:1},
+  {l:2,c:9, t:2},{l:3,c:9, t:2},   // 旧5階→3階へ
+  {l:2,c:24,t:3},{l:4,c:30,t:3},   // 旧5階→4階へ
+  {l:3,c:16,t:4},{l:4,c:7, t:4},
+];
+const CATSPAWN=[
+  {l:1,c:2},{l:2,c:2},{l:3,c:2},{l:5,c:2},{l:4,c:2,boss:1},
+];
+
+// ---------- canvas ----------
+const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
+ctx.imageSmoothingEnabled=false;
+let RS=2; // 内部レンダリング倍率(整数)= ピクセルパーフェクト維持
+function resize(){
+  const deck=document.getElementById('deck');
+  const availW=window.innerWidth;
+  const availH=Math.max(1, window.innerHeight-deck.offsetHeight);
+  // アスペクト比を保って利用可能領域いっぱいまで拡大(スマホでは横幅にフィット)
+  const s=Math.min(availW/W, availH/H);                 // 論理px→CSS px
+  const dpr=window.devicePixelRatio||1;
+  RS=Math.max(1, Math.min(6, Math.round(s*dpr)));       // 整数バッキング倍率
+  if(cv.width!==W*RS){ cv.width=W*RS; cv.height=H*RS; }
+  ctx.imageSmoothingEnabled=false;                      // width変更で戻るため再設定
+  cv.style.width=(W*s)+'px'; cv.style.height=(H*s)+'px';
+}
+window.addEventListener('resize',resize);
+
+// ---------- input ----------
+const inp={dir:0, l:false, r:false, aEdge:false, bHeld:false};
+function bindHold(id,on,off){
+  const el=document.getElementById(id);
+  const dn=e=>{e.preventDefault(); el.classList.add('on'); on();};
+  const up=e=>{e.preventDefault(); el.classList.remove('on'); off();};
+  el.addEventListener('pointerdown',dn);
+  el.addEventListener('pointerup',up);
+  el.addEventListener('pointercancel',up);
+  el.addEventListener('pointerleave',up);
+}
+bindHold('dL',()=>{inp.l=true;},()=>{inp.l=false;});
+bindHold('dR',()=>{inp.r=true;},()=>{inp.r=false;});
+bindHold('bA',()=>{inp.aEdge=true; wake();},()=>{});
+bindHold('bB',()=>{inp.bHeld=true; wake();},()=>{inp.bHeld=false;});
+// 画面タップでもスタート/リスタート(メニュー時のみ、プレイ中の誤爆を防ぐ)
+cv.addEventListener('pointerdown',(e)=>{
+  if(state==='title'){
+    const r=cv.getBoundingClientRect();
+    const fy=(e.clientY-(r?r.top:0))/((r&&r.height)||1);
+    if(fy>0.86){ score=0; lives=3; wake(); startBonus(); return; } // 下部=BONUS TEST
+    inp.aEdge=true; wake();
+  } else if(state==='over'){ inp.aEdge=true; wake(); }
+});
+window.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft'||e.key==='ArrowRight'||e.key===' ')e.preventDefault();
+  if(e.repeat)return;
+  if(e.key==='ArrowLeft')inp.l=true;
+  if(e.key==='ArrowRight')inp.r=true;
+  if(e.key==='z'||e.key==='Z'||e.key===' '){inp.aEdge=true; wake();}   // A=ドア
+  if(e.key==='x'||e.key==='X'){inp.bHeld=true; wake();}                // B=ダッシュ
+  // テストモード: Bキーでボーナスステージを即開始(タイトル/ゲームオーバー/プレイ/ボーナス後から)
+  if((e.key==='b'||e.key==='B')&&(state==='title'||state==='over'||state==='play'||state==='ready')){
+    score=score||0; lives=lives||3; wake(); startBonus();
+  }
+});
+window.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft')inp.l=false;
+  if(e.key==='ArrowRight')inp.r=false;
+  if(e.key==='x'||e.key==='X')inp.bHeld=false;
+});
+document.addEventListener('contextmenu',e=>e.preventDefault());
+
+// ---------- audio ----------
+let AC=null, musicStep=0, musicTimer=null;
+function wake(){ if(!AC){ AC=new (window.AudioContext||window.webkitAudioContext)(); } if(AC.state==='suspended')AC.resume(); }
+function beep(f,dur,type,vol,slide){
+  if(!AC)return;
+  const o=AC.createOscillator(), g=AC.createGain(), t=AC.currentTime;
+  o.type=type||'square'; o.frequency.setValueAtTime(f,t);
+  if(slide)o.frequency.linearRampToValueAtTime(slide,t+dur);
+  g.gain.setValueAtTime(vol||0.08,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g); g.connect(AC.destination);
+  o.start(t); o.stop(t+dur);
+}
+const sfx={
+  bounce:c=>beep(180+c*110,0.12,'square',0.09,320+c*110),
+  land:()=>beep(140,0.05,'triangle',0.06),
+  item:(n)=>{const b=1+(n||0)*0.12; beep(660*b,0.08,'square',0.08);setTimeout(()=>beep(990*b,0.12,'square',0.08),70);},
+  door:()=>beep(200,0.06,'square',0.07,120),
+  wave:()=>beep(520,0.4,'sawtooth',0.05,900),
+  stun:()=>beep(300,0.15,'square',0.08,80),
+  crack:()=>beep(100,0.25,'sawtooth',0.1,40),
+  die:()=>{beep(400,0.2,'square',0.1,90);setTimeout(()=>beep(220,0.4,'square',0.1,60),180);},
+  clear:()=>{[523,659,784,1046].forEach((f,i)=>setTimeout(()=>beep(f,0.15,'square',0.09),i*120));},
+};
+const BASSPAT=[131,196,165,196,147,196,165,220];
+function startMusic(){
+  stopMusic();
+  musicTimer=setInterval(()=>{
+    if(state!=='play')return;
+    beep(BASSPAT[musicStep%8],0.11,'triangle',0.04);
+    musicStep++;
+  },160);
+}
+function stopMusic(){ if(musicTimer){clearInterval(musicTimer);musicTimer=null;} }
+
+// ---------- world helpers ----------
+function shaftAt(x){
+  for(const s of SHAFTS){ if(x>=s[0]*TILE-2 && x<=s[1]*TILE+2) return s; }
+  return null;
+}
+function inShaftCols(x){
+  const c=Math.floor(x/TILE);
+  for(const s of SHAFTS){ if(c>=s[0]&&c<s[1]) return true; }
+  return false;
+}
+function solidAt(l,x){
+  const c=Math.floor(x/TILE);
+  if(c<1||c>COLS-2) return false;
+  return !inShaftCols(x);
+}
+function clampX(x){ return Math.max(TILE+6, Math.min(WORLD-TILE-6, x)); }
+
+// ---------- state ----------
+let state='title';   // title | play | dying | clear | over
+let score=0, hi=10000, lives=3, round=1;
+let player, cats, doors, items, tramps, waves, pops;
+let balloons=[], bonusT=0;
+let stTimer=0, lastItemType=-1, combo=0;
+const ROUND_TIME=3000, HURRY_AT=600, HURRY_SCROLL=90;   // ~50秒 / 残り10秒でハリーアップ / 1回のスクロール長
+let roundT=ROUND_TIME, roundHurry=false, hurryFired=false, hurryT=0;
+
+function makeTramps(){
+  return SHAFTS.map(s=>({x0:s[0]*TILE, x1:s[1]*TILE, y:TRAMP_Y, count:0, broken:0}));
+}
+function resetPositions(){
+  roundT=ROUND_TIME; roundHurry=false; hurryFired=false; hurryT=0;
+  player={x:37*TILE+8, y:FLOORY[0], level:0, mode:'floor', vy:0, dir:-1, anim:0, walking:false, land:0};
+  cats=CATSPAWN.map((c,i)=>({
+    x:SHAFTS[2][0]*TILE+16, y:34-i*26, level:5, mode:'air', vy:1.0, bounced:false,
+    dir:1, boss:!!c.boss, stun:0, dead:0,
+    decide:30+Math.random()*60, target:0, wd:0, spawn:c, anim:0, fly:0,
+  }));
+  tramps=makeTramps();
+  waves=[];
+}
+function newRound(){
+  doors=DOORS0.map(d=>({...d, open:false, used:false}));
+  items=ITEMS0.map(i=>({...i}));
+  pops=[]; lastItemType=-1; combo=0;
+  resetPositions();
+}
+function startGame(){
+  score=0; lives=3; round=1; newRound();
+  state='ready'; stTimer=100; musicStep=0;
+}
+
+// ---------- doors ----------
+function doorBlock(e,nx){
+  for(const d of doors){
+    if(d.l!==e.level||d.open)continue;
+    const dx=d.c*TILE+8;
+    // 閉じたドアの中心線(dx)を「跨ぐ」移動だけをブロック。
+    // すでに線上/内側にいる場合は外側へ動ける(はまらない)。
+    if((e.x-dx)*(nx-dx) < 0) return d;
+  }
+  return null;
+}
+function openDoor(d,byPlayer){
+  if(d.blown)return;               // 吹き飛んだドアは操作不可
+  d.open=!d.open;
+  d.swing=8;              // 開閉スイングのアニメ(8フレーム)
+  sfx.door();
+  const doorX=d.c*TILE+8;
+  // ドアは必ずノブ方向(d.d)へ開閉。その弧に重なるキャラを押し飛ばして気絶(開ける時も閉める時も)
+  for(const c of cats){
+    if(c.dead||c.stun||c.level!==d.l||c.mode!=='floor')continue;
+    const rel=(c.x-doorX)*d.d;
+    if(rel>=0&&rel<24){
+      c.x+=d.d*6; c.stun=240; sfx.stun(); addPop(c.x,c.y-16,'STUN');
+      if(byPlayer)addScore(STUN_PTS,c.x,c.y-24);
+    }
+  }
+  // パワードアの波動は「開いた」時だけ
+  if(d.open&&d.p&&!d.used&&byPlayer){
+    d.used=true;
+    waves.push({x:doorX, l:d.l, d:d.d, kills:0});
+    sfx.wave();
+  }
+  // ボーナス:開けたら扉板が吹き飛んで戻らない
+  if(state==='bonus' && d.open){
+    d.blown=1; d.fx=0; d.fy=0; d.fvx=(d.d||1)*3.2; d.fvy=-4.6; d.frot=0;
+  }
+}
+function sameRoom(cA,cB){
+  // 同じ床セグメント(間にシャフトが無い)なら同じ部屋
+  const lo=Math.min(cA,cB), hi=Math.max(cA,cB);
+  for(const s of SHAFTS){ for(let c=s[0];c<s[1];c++){ if(c>lo&&c<hi)return false; } }
+  return true;
+}
+function tryDoor(){
+  const pc=Math.round((player.x-8)/TILE);       // プレイヤーの居る列
+  let best=null, bd=1e9;
+  for(const d of doors){
+    if(d.l!==player.level)continue;
+    if(d.blown)continue;                         // 吹き飛んだドアは操作不可
+    if(!sameRoom(pc,d.c))continue;               // 同じ部屋のドアだけ操作可
+    const dist=Math.abs(player.x-(d.c*TILE+8));
+    if(dist<bd){bd=dist;best=d;}
+  }
+  if(best)openDoor(best,true);
+}
+
+// ---------- scoring ----------
+function addScore(n,x,y){
+  score+=n; if(score>hi)hi=score;
+  if(x!==undefined)addPop(x,y,''+n);
+}
+function addPop(x,y,txt){ pops.push({x,y,txt,t:60}); }
+
+// ---------- physics ----------
+function doBounce(tr,e,isPlayer){
+  if(tr.broken){ return; } // fall straight through
+  if(isPlayer){
+    if(tr.count>=TRAMP_BREAK){ tr.broken=240; tr.count=0; sfx.crack(); return; }
+    tr.count++; sfx.bounce(tr.count); e.land=4; // 離陸のタメ(つぶれ)
+  }
+  e.vy=-BOUNCE_V;                               // 毎回一定:最上階の上まで届く
+  e.y=tr.y; e.mode='air'; e.bounced=true;
+  if(!isPlayer)e.target=player.level;
+}
+function land(e,l,isPlayer){
+  e.y=FLOORY[l]; e.level=l; e.mode='floor'; e.vy=0;
+  if(isPlayer){ tramps.forEach(t=>t.count=0); sfx.land(); e.land=5; }
+}
+function airUpdate(e,isPlayer,exitDir,onlyLevel){
+  const s=shaftAt(e.x);
+  if(s){ const cx=(s[0]+s[1])*TILE/2; e.x+=(cx-e.x)*0.25; }
+  const py=e.y;
+  e.vy += (e.vy<0 ? GUP : GDOWN);
+  if(e.vy>FALLCAP)e.vy=FALLCAP;
+  if(e.vy<-RISECAP)e.vy=-RISECAP;
+  e.y+=e.vy;
+  // trampoline catch
+  if(e.vy>0){
+    for(const tr of tramps){
+      if(e.x>tr.x0&&e.x<tr.x1&&py<=tr.y&&e.y>=tr.y){ doBounce(tr,e,isPlayer); return; }
+    }
+  }
+  // natural landing on a solid floor
+  if(e.vy>0){
+    for(let l=5;l>=0;l--){
+      const fy=FLOORY[l];
+      if(py<=fy&&e.y>=fy&&solidAt(l,e.x)){ land(e,l,isPlayer); return; }
+    }
+  }
+  // slide out of the shaft at a floor level — バウンス後、通過中の階で方向キーを押せば降りる(上昇・下降とも)
+  if(exitDir&&s&&e.bounced){
+    for(let l=0;l<6;l++){
+      if(onlyLevel!==null&&onlyLevel!==undefined&&l!==onlyLevel)continue;
+      const fy=FLOORY[l];
+      const crossed=(py<=fy&&e.y>=fy)||(py>=fy&&e.y<=fy)||Math.abs(e.y-fy)<5;
+      if(crossed){
+        let ex=exitDir>0? s[1]*TILE+6 : s[0]*TILE-6;
+        if(!solidAt(l,ex)) ex=exitDir>0? s[0]*TILE-6 : s[1]*TILE+6;
+        if(solidAt(l,ex)){ e.x=ex; land(e,l,isPlayer); return; }
+      }
+    }
+  }
+  // fell into the pit
+  if(e.y>KILL_Y){
+    if(isPlayer)killPlayer();
+    else{ e.dead=120; }
+  }
+}
+
+// ---------- player ----------
+function killPlayer(){
+  if(state==='bonus'){  // ボーナス中は死なずに地上へ戻る
+    player.x=37*TILE+8; player.y=FLOORY[0]; player.level=0;
+    player.mode='floor'; player.vy=0; return;
+  }
+  if(state!=='play')return;
+  state='dying'; stTimer=52; stopMusic(); sfx.die();
+  player.spin=0; player.fvx=-(player.dir||1)*2.4; player.fvy=-5.6; // 回転しながら吹き飛ぶ
+}
+function updatePlayer(){
+  const p=player;
+  p.walking=false; p.dashing=false;
+  if(p.land>0)p.land--;
+  if(p.holdT>0)p.holdT--;
+  if(p.stun>0){ p.stun--; return; }   // ドアに押し飛ばされて気絶中は操作不能
+  if(p.mode==='floor'){
+    if(inp.dir){
+      p.dir=inp.dir;
+      const spd=(inp.bHeld?2.6:1.4)*(roundHurry?1.35:1);   // Bダッシュ/ハリーアップで加速
+      let nx=clampX(p.x+inp.dir*spd);
+      if(!doorBlock(p,nx)){
+        p.x=nx; p.anim+=inp.bHeld?0.45:0.25; p.walking=true; p.dashing=inp.bHeld;
+        if(!solidAt(p.level,p.x)){
+          // どの階からでもピットへ落下 → トランポリンで跳ね返る
+          p.mode='air'; p.vy=0.5; p.bounced=false;
+        }
+      }
+    }
+    if(inp.aEdge)tryDoor();
+  } else {
+    airUpdate(p,true,inp.dir,null);
+  }
+}
+
+// ---------- cats ----------
+const catBaseSpeed=()=>Math.min(1.1, 0.5+round*0.08);
+function respawnCat(c){
+  // 中央の屋根の窓から中央シャフトを落ちて登場
+  c.x=SHAFTS[2][0]*TILE+16; c.y=34; c.level=5;
+  c.mode='air'; c.vy=1.0; c.bounced=false; c.target=player.level;
+  c.stun=0; c.dead=0; c.wd=0; c.hide=null; c.fly=0;
+  c.decide=40+Math.random()*60;
+}
+function updateCat(c){
+  if(c.dead>0){
+    c.dead--;
+    if(c.fly){ c.x+=c.fvx; c.y+=c.fvy; c.fvy+=0.35; c.frot=(c.frot||0)+0.4;
+               if(c.y>KILL_Y+40||c.x<0||c.x>WORLD)c.fly=2; }
+    if(c.dead<=0){ c.fly=0; respawnCat(c); }
+    return;
+  }
+  if(c.stun>0){ c.stun--; return; }
+  if(c.mode==='floor'){
+    c.decide--;
+    if(c.decide<=0){
+      c.decide=50+Math.random()*70;
+      c.dir=(Math.random()<0.75)?(player.x>c.x?1:-1):(Math.random()<.5?1:-1);
+    }
+    // ボスはアイテムの陰に隠れて待ち伏せすることがある
+    if(c.boss&&!c.hide&&player.level!==c.level&&Math.random()<0.006){
+      const it=items.find(t=>t.l===c.level&&Math.abs(t.c*TILE+8-c.x)<14);
+      if(it){ c.hide=it; c.x=it.c*TILE+8; c.hideT=420; }
+    }
+    if(c.hide){
+      c.hideT--;
+      if(!items.includes(c.hide)){            // 隠れ先をプレイヤーが取った → 発見ボーナス
+        addScore(1000,c.x,c.y-24); addPop(c.x,c.y-36,'AMBUSH!');
+        c.stun=180; c.hide=null;
+      } else if(c.hideT<=0||(player.level===c.level&&Math.abs(player.x-c.x)<44&&c.hideT<390)){
+        c.hide=null;                           // とびだして追跡再開
+      } else return;
+    }
+    const sp=catBaseSpeed()*(c.boss?1.3:1)*(roundHurry?1.4:1);
+    let nx=clampX(c.x+c.dir*sp);
+    if(nx===c.x){ c.dir*=-1; return; }
+    const bd=doorBlock(c,nx);
+    if(bd){
+      if(bd.p&&!bd.used){ c.dir*=-1; c.wd=0; return; } // 光るドアは主人公だけ:猫は引き返す
+      if(c.wd<=0)c.wd=45;
+      else{ c.wd--; if(c.wd<=0)openDoor(bd,false); }
+      return;
+    }
+    if(!solidAt(c.level,nx)){
+      if(c.level!==player.level||Math.random()<0.1){
+        c.x=nx; c.mode='air'; c.vy=0.5; c.target=player.level; c.bounced=false;
+      } else c.dir*=-1;
+    } else { c.x=nx; c.anim=(c.anim||0)+0.2; }
+  } else {
+    airUpdate(c,false,(player.x>c.x)?1:-1,c.target);
+  }
+}
+
+// ---------- bonus stage (balloons) ----------
+let bonusGot=0, bonusPts=0, bonusTotal=0;
+let tallyN=0, tallyP=0, tallyT=0, tallyPerfect=false;
+function roomCenters(){
+  // 各床セグメント(部屋)の中心列を算出
+  const shaft=new Set(); SHAFTS.forEach(s=>{for(let c=s[0];c<s[1];c++)shaft.add(c);});
+  const centers=[]; let start=null;
+  for(let c=1;c<=COLS-2;c++){
+    if(!shaft.has(c)){ if(start===null)start=c; }
+    else if(start!==null){ centers.push(Math.round((start+c-1)/2)); start=null; }
+  }
+  if(start!==null)centers.push(Math.round((start+(COLS-2))/2));
+  return centers;
+}
+function startBonus(){
+  newRound();
+  cats=[]; items=[]; waves=[];
+  // ボーナスは全ドアが光るドア(パワードア)
+  doors.forEach(d=>{ d.open=false; d.used=false; d.p=1; });
+  balloons=[];
+  const centers=roomCenters();               // 各部屋に1つずつ
+  for(let l=0;l<6;l++) for(const c of centers) balloons.push({x:c*TILE+8, l, bob:Math.random()*60});
+  bonusTotal=balloons.length; bonusGot=0; bonusPts=0;
+  bonusT=900; state='bonus'; startMusic();
+}
+function popBalloon(i,x,y){
+  balloons.splice(i,1); addScore(200,x,y); sfx.item(0);
+  bonusGot++; bonusPts+=200;
+}
+function startTally(){
+  tallyN=0; tallyP=0; tallyT=0;
+  tallyPerfect=(bonusGot===bonusTotal);
+  state='bonustally'; stopMusic();
+}
+function endBonus(){ newRound(); state='play'; startMusic(); }
+function updateBonus(){
+  inp.dir=(inp.r?1:0)-(inp.l?1:0);
+  updatePlayer();
+  if(inp.aEdge)tryDoor();                 // 光るドアを開けて波動を出す
+  // 吹き飛んだ扉板の飛翔
+  for(const d of doors){
+    if(d.blown===1){ d.fx+=d.fvx; d.fy+=d.fvy; d.fvy+=0.3; d.frot=(d.frot||0)+0.35;
+      if(d.fy>DOORH+60||d.fx>240||d.fx<-240) d.blown=2; }
+  }
+  updateWaves();                          // 波動が移動(アニメ)して風船を撮る
+  tramps.forEach(t=>{ if(t.broken>0){t.broken--; if(t.broken<=0)t.count=0;} });
+  for(let i=balloons.length-1;i>=0;i--){  // 体当たりでも撮れる
+    const b=balloons[i], by=FLOORY[b.l]-14;
+    if(Math.abs(player.x-b.x)<12&&Math.abs((player.y-8)-by)<16) popBalloon(i,b.x,by);
+  }
+  bonusT--;
+  if(balloons.length===0){
+    addScore(2000,player.x,player.y-24); addPop(player.x,player.y-36,'PERFECT!');
+    bonusPts+=2000; startTally();
+  } else if(bonusT<=0) startTally();
+  pops.forEach(p=>{p.t--;p.y-=0.4;});
+  pops=pops.filter(p=>p.t>0);
+  if(inp.aEdge)inp.aEdge=false;
+}
+function updateTally(){
+  tallyT++;
+  if(tallyN<bonusGot){
+    if(tallyT%8===0){ tallyN++; tallyP=tallyN*200; sfx.item(0); } // 風船を1個ずつ並べる
+  } else if(tallyP<bonusPts){
+    tallyP=Math.min(bonusPts, tallyP+100);      // PERFECTボーナス分を加算
+    if(tallyP%400===0)sfx.bounce(1);
+  }
+  const done=(tallyN>=bonusGot&&tallyP>=bonusPts);
+  if(inp.aEdge&&tallyT>15){ inp.aEdge=false; tallyN=bonusGot; tallyP=bonusPts; } // 早送り
+  if(done&&tallyT>130) endBonus();
+}
+
+// ---------- waves (power door) ----------
+function updateWaves(){
+  for(let i=waves.length-1;i>=0;i--){
+    const w=waves[i];
+    w.x+=w.d*1.4;
+    for(const c of cats){
+      if(c.dead||c.hide||c.level!==w.l||c.mode!=='floor')continue;
+      if(Math.abs(c.x-w.x)<12){
+        const base=WAVE_PTS[Math.min(w.kills,WAVE_PTS.length-1)];
+        const pts=c.boss?base*BOSS_WAVE_MULT:base;
+        w.kills++;
+        addScore(pts,c.x,c.y-20);
+        if(c.boss)addPop(c.x,c.y-32,'BOSS x'+BOSS_WAVE_MULT);
+        // 波動と一緒に吹き飛ばされる
+        c.dead=300; c.fly=1; c.fvx=w.d*4; c.fvy=-4.5; c.frot=0;
+      }
+    }
+    // ボーナス:波動が風船を撮る
+    for(let bi=balloons.length-1;bi>=0;bi--){
+      const b=balloons[bi];
+      if(b.l===w.l && Math.abs(b.x-w.x)<12){ popBalloon(bi, b.x, FLOORY[b.l]-14); }
+    }
+    if(w.x<TILE+4||w.x>WORLD-TILE-4)waves.splice(i,1);  // 家の端(壁)まで飛ぶ
+  }
+}
+
+// ---------- items / collisions ----------
+function updatePlay(){
+  roundT--;
+  roundHurry = roundT<HURRY_AT;
+  if(roundHurry && !hurryFired){ hurryFired=true; hurryT=0; }   // 1回だけ発火
+  if(hurryFired && hurryT<HURRY_SCROLL) hurryT++;
+  if(roundT<=0){ killPlayer(); return; }   // タイムオーバー=やられる(回転して終了)
+  inp.dir=(inp.r?1:0)-(inp.l?1:0);
+  updatePlayer();
+  cats.forEach(updateCat);
+  updateWaves();
+  // trampoline repair
+  tramps.forEach(t=>{ if(t.broken>0){t.broken--; if(t.broken<=0)t.count=0;} });
+  // item pickup
+  if(player.mode==='floor'){
+    for(let i=items.length-1;i>=0;i--){
+      const it=items[i];
+      if(it.l===player.level&&Math.abs(player.x-(it.c*TILE+8))<11){
+        if(it.t===lastItemType) combo=Math.min(combo+1,CHAIN_MAX);
+        else combo=0;
+        lastItemType=it.t;
+        const mult=1+combo*CHAIN_STEP;                 // 1,1.5,2,...,4
+        let pts=Math.round(ITEMDEF[it.t].pts*mult);
+        addScore(pts,player.x,player.y-20);
+        if(combo>0)addPop(player.x,player.y-30,'CHAIN x'+mult.toFixed(1));
+        sfx.item(combo);
+        player.holdItem=it.t; player.holdT=30;   // 頭上に持ち上げる演出
+        items.splice(i,1);
+      }
+    }
+    if(items.length===0){ state='clear'; stTimer=140; stopMusic(); sfx.clear(); }
+    // cat contact
+    for(const c of cats){
+      if(c.dead||c.stun||c.hide||c.mode!=='floor')continue;
+      if(c.level===player.level&&Math.abs(c.x-player.x)<11){ killPlayer(); break; }
+    }
+  }
+  pops.forEach(p=>{p.t--;p.y-=0.4;});
+  pops=pops.filter(p=>p.t>0);
+  if(inp.aEdge)inp.aEdge=false;
+}
+
+// ---------- sprites ----------
+function drawMap(map,pal,x,y,flip){
+  const w=map[0].length;
+  for(let r=0;r<map.length;r++){
+    for(let c=0;c<w;c++){
+      const k=map[r][flip? w-1-c : c];
+      if(k==='.')continue;
+      ctx.fillStyle=pal[k];
+      ctx.fillRect(x+c,y+r,1,1);
+    }
+  }
+}
+const MOUSE=[
+"..KK........KK..",
+".KWWK......KWWK.",
+".KWWWK....KWWWK.",
+".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..",
+"..KWWKWWWWWKWK..",
+"..KWWWWPPWWWWK..",
+"..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...",
+"...KBBBBBBBBK...",
+"..KBWBBBBBBWBK..",
+"..KBBBBBBBBBBK..",
+"...KBBBBBBBBK...",
+"...KBBKKKKBBK...",
+"....KBK..KBK....",
+"....KK....KK....",
+];
+// 歩行フレームA(足を広げた蹴り出し)
+const MOUSE_WALK1=[
+"..KK........KK..",
+".KWWK......KWWK.",
+".KWWWK....KWWWK.",
+".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..",
+"..KWWKWWWWWKWK..",
+"..KWWWWPPWWWWK..",
+"..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...",
+"...KBBBBBBBBK...",
+"..KBWBBBBBBWBK..",
+"..KBBBBBBBBBBK..",
+"...KBBBBBBBBK...",
+"..KWBK....KBK...",
+"..KK.......KK...",
+"................",
+];
+// 歩行フレームB(足を揃えた接地)
+const MOUSE_WALK2=[
+"..KK........KK..",
+".KWWK......KWWK.",
+".KWWWK....KWWWK.",
+".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..",
+"..KWWKWWWWWKWK..",
+"..KWWWWPPWWWWK..",
+"..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...",
+"...KBBBBBBBBK...",
+"..KBWBBBBBBWBK..",
+"..KBBBBBBBBBBK..",
+"...KBBBBBBBBK...",
+".....KBKKBK.....",
+".....KK..KK.....",
+"................",
+];
+// ジャンプ(両手を上げて足をたたむ)
+const MOUSE_JUMP=[
+"W..KK......KK..W",
+".KWWK......KWWK.",
+".KWWWK....KWWWK.",
+".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..",
+"..KWWKWWWWWKWK..",
+"..KWWWWPPWWWWK..",
+"..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...",
+"..KKBBBBBBBBKK..",
+".KWKBBBBBBBBKWK.",
+"...KBBBBBBBBK...",
+"...KBBBBBBBBK...",
+"....KBBKKBBK....",
+"....KWBKKBWK....",
+"................",
+];
+// バウンス中のバタバタ(手足を横に広げる)
+const MOUSE_FLAIL=[
+"..KK........KK..",
+".KWWK......KWWK.",
+".KWWWK....KWWWK.",
+".KWWWWKKKKWWWWK.",
+"..KWWWWWWWWWWK..",
+"..KWWKWWWWWKWK..",
+"..KWWWWPPWWWWK..",
+"..KWWWWWWWWWWK..",
+"...KWWWWWWWWK...",
+"...KBBBBBBBBK...",
+"KWKBBBBBBBBBBKWK",
+"...KBBBBBBBBK...",
+"...KBBBBBBBBK...",
+"...KBBKKKKBBK...",
+"..KWBK....KBWK..",
+"..KK........KK..",
+];
+// 着地(つぶれ)
+const MOUSE_LAND=[
+"................",
+"................",
+"................",
+"................",
+"................",
+"................",
+"..KK........KK..",
+".KWWKKKKKKKKWWK.",
+".KWWWWWWWWWWWWK.",
+".KWWKWWWWWWWKWK.",
+".KWWWWWPPWWWWWK.",
+".KWWWWWWWWWWWWK.",
+"KBWBBBBBBBBBBWBK",
+"KBBBBBBBBBBBBBBK",
+".KBBKKKKKKKKBBK.",
+"KKK..........KKK",
+];
+const MOUSEPAL={K:'#101018',W:'#f2f2f2',B:'#1fa89a',P:'#ff9a5c'};
+const CAT=[
+"....K......K....",
+"...KPK....KPK...",
+"...KPPK..KPPK...",
+"..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..",
+"..KPPPPPWWKPPK..",
+"..KPPPPPWWKPWWK.",
+"..KPPPPPPPPPPPK.",
+"...KPPPPPPPPPK..",
+"K..KPPPPPPPPK...",
+"KK.KPPPPPPPPK...",
+".KKKPPPPPPPPK...",
+"...KPPKPPPPKK...",
+"...KPK...KPK....",
+"...KPK...KPK....",
+"...KK.....KK....",
+];
+const CAT_WALK2=[
+"....K......K....",
+"...KPK....KPK...",
+"...KPPK..KPPK...",
+"..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..",
+"..KPPPPPWWKPPK..",
+"..KPPPPPWWKPWWK.",
+"..KPPPPPPPPPPPK.",
+"...KPPPPPPPPPK..",
+"K..KPPPPPPPPK...",
+"KK.KPPPPPPPPK...",
+".KKKPPPPPPPPK...",
+"...KPPKPPPPKK...",
+".....KPK.KPK....",
+".....KPK.KPK....",
+".....KK...KK....",
+];
+const CAT_AIR1=[
+"...K........K...",
+"..KPK......KPK..",
+"..KPPK....KPPK..",
+".KPPPPKKKKPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPWWKPPPWWKPPK.",
+".KPWWKPPPWWKPPK.",
+".KPPPPWWWWPPPPK.",
+".KPPPPWKKWPPPPK.",
+"..KPPPPPPPPPPK..",
+"...KPPPPPPPPK...",
+"...KPPPPPPPPK...",
+"..KPPKPPPPKPPK..",
+".KPK........KPK.",
+"KPK..........KPK",
+"KK............KK",
+];
+const CAT_AIR2=[
+"...K........K...",
+"..KPK......KPK..",
+"..KPPK....KPPK..",
+".KPPPPKKKKPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPWWKPPPWWKPPK.",
+".KPWWKPPPWWKPPK.",
+".KPPPPWWWWPPPPK.",
+".KPPPPWKKWPPPPK.",
+"..KPPPPPPPPPPK..",
+"...KPPPPPPPPK...",
+"...KPPPPPPPPK...",
+"..KPPKPPPPKPPK..",
+"....KPKPPKPK....",
+"....KPK..KPK....",
+"....KK....KK....",
+];
+const BOSS_W1=[
+"....K......K....",
+"...KPK....KPK...",
+"...KPPK..KPPK...",
+"..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..",
+"..KPPPPPWWKPPK..",
+"..KPPPPPWWKPWWK.",
+"..KPPPPPPPPPPPK.",
+"..KPPPPPPPPPPK..",
+"K.KPPPPPPPPPPK..",
+"KKKPPPPPPPPPPK..",
+".KPPPPPPPPPPPK..",
+"..KPPKPPPPPKPK..",
+"...KPK...KPK....",
+"...KPK...KPK....",
+"...KK.....KK....",
+];
+const BOSS_W2=[
+"....K......K....",
+"...KPK....KPK...",
+"...KPPK..KPPK...",
+"..KPPPPKKPPPPK..",
+"..KPPPPPPPPPPK..",
+"..KPPPPPWWKPPK..",
+"..KPPPPPWWKPWWK.",
+"..KPPPPPPPPPPPK.",
+"..KPPPPPPPPPPK..",
+"K.KPPPPPPPPPPK..",
+"KKKPPPPPPPPPPK..",
+".KPPPPPPPPPPPK..",
+"..KPPKPPPPPKPK..",
+".....KPK.KPK....",
+".....KPK.KPK....",
+".....KK...KK....",
+];
+const BOSS_A1=[
+"...K........K...",
+"..KPK......KPK..",
+"..KPPK....KPPK..",
+".KPPPPKKKKPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPWWKPPPWWKPPK.",
+".KPWWKPPPWWKPPK.",
+".KPPPPWWWWPPPPK.",
+".KPPPPWKKWPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPPKPPPPPPKPPK.",
+".KPK........KPK.",
+"KPK..........KPK",
+"KK............KK",
+];
+const BOSS_A2=[
+"...K........K...",
+"..KPK......KPK..",
+"..KPPK....KPPK..",
+".KPPPPKKKKPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPWWKPPPWWKPPK.",
+".KPWWKPPPWWKPPK.",
+".KPPPPWWWWPPPPK.",
+".KPPPPWKKWPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPPPPPPPPPPPPK.",
+".KPPKPPPPPPKPPK.",
+"....KPKPPKPK....",
+"....KPK..KPK....",
+"....KK....KK....",
+];
+const CATPAL={K:'#101018',P:'#f2843c',W:'#ffffff'};
+const BOSSPAL={K:'#101018',P:'#ff4136',W:'#ffe66d'};
+
+function drawItemIcon(t,x,y){
+  const T=y-14;                      // アイコン上端(背景は描かず透過)
+  const R=(dx,dy,w,h,c)=>{ ctx.fillStyle=c; ctx.fillRect(x+dx,T+dy,w,h); };
+  switch(t){
+    case 0: // ラジカセ(取っ手+スピーカー2つ)
+      R(-4,0,8,1,'#9aa0aa'); R(-4,1,1,2,'#9aa0aa'); R(3,1,1,2,'#9aa0aa'); // 取っ手
+      R(-7,3,14,10,'#3a3f48');                                            // 本体
+      R(-6,5,4,4,'#cfd4dc'); R(-5,6,2,2,'#2a2f38');                       // 左スピーカー
+      R(2,5,4,4,'#cfd4dc');  R(3,6,2,2,'#2a2f38');                        // 右スピーカー
+      R(-1,5,2,2,'#6cf');                                                 // 中央ボタン
+      break;
+    case 1: // ブラウン管テレビ(アンテナ+画面+脚)
+      R(-3,0,1,1,'#cfd4dc'); R(-2,1,1,1,'#cfd4dc'); R(-1,2,1,1,'#cfd4dc');// 左アンテナ
+      R(3,0,1,1,'#cfd4dc');  R(2,1,1,1,'#cfd4dc');  R(1,2,1,1,'#cfd4dc'); // 右アンテナ
+      R(-7,3,14,9,'#8a5a2a');                                            // 木目筐体
+      R(-6,4,9,7,'#3ad0ff'); R(-6,4,9,1,'#bff');                         // 画面
+      R(4,4,2,2,'#333'); R(4,7,2,2,'#333');                              // つまみ
+      R(-5,12,2,1,'#5a3a18'); R(3,12,2,1,'#5a3a18');                     // 脚
+      break;
+    case 2: // パソコン(モニタ+スタンド+台)
+      R(-6,0,12,9,'#cfd4dc');                                            // モニタ枠
+      R(-5,1,10,6,'#3a6ce0'); R(-5,1,10,1,'#9bf');                       // 画面
+      R(-1,9,2,2,'#9aa0aa');                                             // 首
+      R(-4,11,8,2,'#9aa0aa');                                            // 台
+      break;
+    case 3: // 絵画(額縁+肖像)
+      R(-6,0,12,13,'#e8b93c'); R(-5,1,10,11,'#a8801c');                  // 額縁
+      R(-4,2,8,9,'#6b4a86');                                             // 背景(暗い紫)
+      R(-2,3,4,2,'#3a2a18');                                             // 髪
+      R(-2,4,4,3,'#f2c9a0');                                             // 顔
+      R(-3,7,6,4,'#2d6a4f');                                             // 肩(衣)
+      break;
+    case 4: // ダイヤ(宝石)
+      R(-4,1,8,1,'#8ef0ff');                                             // 上面
+      R(-5,2,10,1,'#8ef0ff');
+      R(-6,3,12,2,'#39cccc');                                           // 胴
+      R(-5,5,10,1,'#39cccc');
+      R(-4,6,8,1,'#2aa'); R(-3,7,6,1,'#2aa');
+      R(-2,8,4,1,'#2aa'); R(-1,9,2,1,'#188');                           // 下の尖り
+      R(-4,1,8,1,'#fff'); R(-1,3,1,4,'#bff');                           // ハイライト
+      break;
+  }
+}
+
+// ---------- draw ----------
+// 屋根: front=false 背景(壁・青屋根・窓の暗い開口)、true 前面(壁上端＋窓の桟でキャラを覆う)
+function drawRoof(front){
+  const RTOP=27, RBOT=48, wallH=RBOT-RTOP;   // 屋根は上部固定。最上階(FLOORY[5])との間に48pxの屋根裏
+  const capH=6;                                   // 窓より上の壁(前面で重ねてキャラを隠す)
+  if(!front){
+    ctx.fillStyle='#cfc6e6'; ctx.fillRect(TILE-4,RTOP,WORLD-2*TILE+8,wallH);
+    ctx.fillStyle='#000';
+    for(let k=0;k<12;k++){
+      ctx.fillRect(TILE-4,RTOP+wallH-1-k,12-k,1);
+      ctx.fillRect(WORLD-TILE+4-(12-k),RTOP+wallH-1-k,12-k,1);
+    }
+    const blueW=Math.round((WORLD-2*TILE)*0.30);
+    for(let yy=RTOP; yy<RBOT-2; yy++){
+      ctx.fillStyle=(yy===RTOP)?'#57d0c0':'#2bb7a6';
+      const shrink=Math.max(0,(yy-RTOP)-2); const w=blueW-shrink;
+      if(w>0)ctx.fillRect(TILE-4,yy,w,1);
+    }
+    ctx.fillStyle='#8d7cc0';
+    for(let yy=RTOP+2; yy<RBOT-2; yy++){ const shrink=Math.max(0,(yy-RTOP)-2); ctx.fillRect(TILE-4+blueW-shrink,yy,2,1); }
+    ctx.fillStyle='#8d7cc0'; ctx.fillRect(TILE-4,RTOP,WORLD-2*TILE+8,2);   // 上端トリム(背景のみ)
+  }
+  // ※ 前面パスでは屋根の壁は描かない(=屋根ではキャラは隠れない)。窓の枠と桟だけを前面に重ねる。
+
+  // 小窓(広め): 枠と桟は両パス、暗い開口は背景のみ
+  const winN=7, span=WORLD-2*TILE-24, x0=TILE+8, w=11, h=13, wy=RTOP+capH+1;
+  for(let i=0;i<winN;i++){
+    if(i===3)continue;
+    const wx=Math.round(x0+span*i/(winN-1))-((w-7)>>1);
+    if(!front){
+      ctx.fillStyle='#8d7cc0'; ctx.fillRect(wx,wy-2,w,h+2);         // 枠
+      ctx.fillStyle='#000'; ctx.fillRect(wx+1,wy,w-2,h-1); ctx.fillRect(wx+2,wy-1,w-4,1); // 開口
+    }
+    ctx.fillStyle='#8d7cc0';                                         // 桟(前面でも重ねる)
+    ctx.fillRect(wx+((w>>1)),wy,1,h-1); ctx.fillRect(wx+1,wy+((h>>1)),w-2,1);
+    if(front){ ctx.fillRect(wx,wy-2,w,1); ctx.fillRect(wx,wy-2,1,h+2); ctx.fillRect(wx+w-1,wy-2,1,h+2); ctx.fillRect(wx,wy+h-1,w,1); } // 枠の縁
+  }
+  // 中央の大窓(アーチ型):屋根の帯の中に収める。猫がここから出入り
+  const cwx=SHAFTS[2][0]*TILE+16;
+  const cTop=RTOP+2, cBot=RBOT-1, HW=16, archH=8;   // y29..47 / 幅32px(帯内で最大)
+  const halfAt=(y)=>{
+    if(y<cTop||y>cBot)return -1;
+    if(y<cTop+archH){ const t=(y-cTop+1)/archH; return Math.round(HW*Math.sqrt(Math.max(0,t))); }
+    return HW;
+  };
+  if(!front){
+    for(let y=cTop-1;y<=cBot;y++){                    // 枠(1px外側)
+      const hw=Math.max(halfAt(y-1),halfAt(y),halfAt(y+1));
+      if(hw>0){ ctx.fillStyle='#8d7cc0'; ctx.fillRect(cwx-hw-1,y,hw*2+2,1); }
+    }
+    for(let y=cTop;y<cBot;y++){                        // 暗い開口
+      const hw=halfAt(y); if(hw<1)continue;
+      ctx.fillStyle='#0a0a14'; ctx.fillRect(cwx-hw,y,hw*2,1);
+    }
+    // 桟:縦2本(中心対称=3列均等)+横1本(開口の中央)
+    ctx.fillStyle='#8d7cc0';
+    for(let y=cTop;y<cBot;y++){ if(halfAt(y)>=7){ ctx.fillRect(cwx-6,y,1,1); ctx.fillRect(cwx+5,y,1,1); } }
+    const my=cTop+(((cBot-cTop)/2)|0);
+    for(let x=-HW;x<HW;x++){ if(halfAt(my)>Math.abs(x)-1) ctx.fillRect(cwx+x,my,1,1); }
+  }
+}
+// 小さい残機アイコン(ネズミ顔 ~7x7)
+function drawLife(x,y){
+  const K=MOUSEPAL.K, Wc=MOUSEPAL.W, B=MOUSEPAL.B;
+  ctx.fillStyle=K;
+  ctx.fillRect(x,y,2,2); ctx.fillRect(x+5,y,2,2);   // 耳
+  ctx.fillRect(x,y+2,7,5);                           // 頭の輪郭
+  ctx.fillStyle=Wc; ctx.fillRect(x+1,y+3,5,3);       // 顔(白)
+  ctx.fillStyle=B; ctx.fillRect(x+1,y+6,5,1);        // 体(ティール)
+  ctx.fillStyle=K; ctx.fillRect(x+2,y+4,1,1); ctx.fillRect(x+4,y+4,1,1); // 目
+}
+function draw(){
+  ctx.setTransform(RS,0,0,RS,0,0);   // 論理座標→整数倍バッキングへ
+  if(state==='title'){ drawTitle(); return; }
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  const camX=Math.max(0,Math.min(WORLD-W,player.x-W/2));
+  ctx.save(); ctx.translate(-camX|0,0);
+
+  // sky (屋根まわりは黒)
+  ctx.fillStyle='#000';
+  ctx.fillRect(0,0,WORLD,48);
+
+  // interior (部屋の中の背景)
+  ctx.fillStyle='#241d38';
+  ctx.fillRect(TILE,48,WORLD-2*TILE,FLOORY[0]+7-48);
+
+  // pit (最下階の床の下の暗がり)
+  ctx.fillStyle='#141426';
+  ctx.fillRect(TILE,FLOORY[0]+7,WORLD-2*TILE,KILL_Y+2-(FLOORY[0]+7));
+
+  // grass (地面の草むら)
+  ctx.fillStyle='#2f9e6e';
+  ctx.fillRect(0,KILL_Y+2,WORLD,H-(KILL_Y+2));
+  ctx.fillStyle='#57d99a';
+  ctx.fillRect(0,KILL_Y+2,WORLD,1);
+  for(let gx=2;gx<WORLD;gx+=7)ctx.fillRect(gx,KILL_Y+1,1,1);
+
+  drawRoof(false);   // 背景の屋根(壁・青屋根・窓の暗い開口)
+
+  // side walls
+  ctx.fillStyle='#322a52';
+  ctx.fillRect(0,48,TILE,H-48); ctx.fillRect(WORLD-TILE,48,TILE,H-48);
+
+  // floors
+  for(let l=0;l<6;l++){
+    const fy=FLOORY[l];
+    let run=null;
+    for(let c=1;c<=COLS-1;c++){
+      const solid=c<COLS-1&&!SHAFTS.some(s=>c>=s[0]&&c<s[1]);
+      if(solid&&run===null)run=c;
+      if((!solid||c===COLS-2)&&run!==null){
+        const end=(!solid)?c:c+1;
+        const bx=run*TILE, bw=(end-run)*TILE;
+        // 太い床帯(7px): 本体+ハイライト+模様、端は角を落として丸く
+        ctx.fillStyle='#b8862e'; ctx.fillRect(bx,fy,bw,7);
+        ctx.fillStyle='#eec25a'; ctx.fillRect(bx,fy,bw,2);
+        ctx.fillStyle='#7a561a';
+        for(let tx=bx+4;tx<bx+bw-3;tx+=8)ctx.fillRect(tx,fy+3,2,3);
+        ctx.fillStyle='#000';
+        ctx.fillRect(bx,fy,1,1); ctx.fillRect(bx+bw-1,fy,1,1);
+        ctx.fillRect(bx,fy+6,1,1); ctx.fillRect(bx+bw-1,fy+6,1,1);
+        // ぶら下がる脚(ブラケット)
+        ctx.fillStyle='#7a561a';
+        for(let tx=bx+6;tx<bx+bw-6;tx+=16)ctx.fillRect(tx,fy+7,2,4);
+        run=null;
+      }
+    }
+  }
+  // trampolines
+  for(const tr of tramps){
+    if(tr.broken>0){
+      ctx.fillStyle='#555';
+      ctx.fillRect(tr.x0+2,tr.y,8,3); ctx.fillRect(tr.x1-10,tr.y,8,3);
+    }else{
+      ctx.fillStyle='#3a3a50';   // 支柱
+      ctx.fillRect(tr.x0+2,tr.y,2,KILL_Y+2-tr.y); ctx.fillRect(tr.x1-4,tr.y,2,KILL_Y+2-tr.y);
+      ctx.fillStyle=TRAMP_COL[Math.min(2,tr.count)];
+      ctx.fillRect(tr.x0+1,tr.y,tr.x1-tr.x0-2,4);
+      ctx.fillStyle='#fff'; ctx.fillRect(tr.x0+1,tr.y,tr.x1-tr.x0-2,1);
+    }
+  }
+  // doors
+  for(const d of doors){
+    const dx=d.c*TILE+8, fy=FLOORY[d.l], top=fy-DOORH;
+    const flash=d.p&&!d.used&&(frame>>3)%2===0;
+    const dc=flash?'#ffffff':(d.p&&!d.used?'#2ecc40':'#c7913e'); // パワードアは緑
+    if(d.swing>0)d.swing--;
+    // スイング進行度 0(閉)→1(全開): 開くときは0→1、閉じるときは1→0
+    const t=d.open?1-(d.swing||0)/8:(d.swing||0)/8;
+    if(d.blown===2){
+      // 吹き飛んで消えた: 何も描かない(通路は開いたまま)
+    }else if(d.blown===1){
+      // 吹き飛ぶ扉板(回転しながら飛ぶ)
+      const w=14, h=DOORH;
+      ctx.save(); ctx.translate(dx+d.fx, top+h/2+d.fy); ctx.rotate(d.frot);
+      const grain=(d.p&&!d.used)?['#1e8a2e','#2ecc40','#25a637','#2ecc40','#3ad94f']:['#a8701f','#c7913e','#8a5a18','#c7913e','#b8862e'];
+      for(let i=0;i<w;i++){ ctx.fillStyle=grain[i%grain.length]; ctx.fillRect(-w/2+i,-h/2,1,h); }
+      ctx.fillStyle=(d.p&&!d.used)?'#0f4d18':'#5a3e14'; ctx.fillRect(-w/2,-h/2,1,h);
+      ctx.fillStyle=(d.p&&!d.used)?'#bfffca':'#fff2cf'; ctx.fillRect(w/2-1,-h/2,1,h);
+      ctx.restore();
+    }else if(d.open||d.swing>0){
+      // 開くと縦パネルが戸口から下がる(通常=木目/パワー=緑グロー、点滅時は白)。傾けない
+      const w=Math.max(2,Math.round(14*t)), x0=dx-(w>>1), h=DOORH;
+      let grain;
+      if(flash)                grain=['#ffffff','#eefff2','#ffffff','#dfffe8','#ffffff','#eefff2'];
+      else if(d.p&&!d.used)    grain=['#1e8a2e','#2ecc40','#25a637','#2ecc40','#3ad94f','#1e8a2e','#2ecc40','#25a637','#2ecc40','#3ad94f','#25a637','#2ecc40','#1e8a2e','#2ecc40'];
+      else                     grain=['#a8701f','#c7913e','#8a5a18','#c7913e','#b8862e','#a8701f','#c9963f','#8a5a18','#c7913e','#a8701f','#b8862e','#c7913e','#8a5a18','#a8701f'];
+      for(let i=0;i<w;i++){ ctx.fillStyle=grain[i%grain.length]; ctx.fillRect(x0+i,top,1,h); }
+      // 節(横の短い陰)
+      ctx.fillStyle=(d.p&&!d.used)?'#166b24':'#8a5a18';
+      for(let k=6;k<h;k+=11){ const gx=x0+2+((k*7)%(Math.max(1,w-4))); ctx.fillRect(gx,top+k,2,1); }
+      // 縁: 左=陰 / 右=ハイライト
+      ctx.fillStyle=(d.p&&!d.used)?'#0f4d18':'#5a3e14'; ctx.fillRect(x0,top,1,h);
+      ctx.fillStyle=(d.p&&!d.used)?'#bfffca':'#fff2cf'; ctx.fillRect(x0+w-1,top,1,h);
+      // 上のヒンジ金具
+      ctx.fillStyle=(d.p&&!d.used)?'#0f4d18':'#5a3e14'; ctx.fillRect(dx-3,top-1,6,2);
+    }else{
+      // 閉:部屋いっぱいの面板
+      ctx.fillStyle=dc; ctx.fillRect(dx-2,top,5,DOORH);
+      // ドアノブ(開く側の縁、中央の高さに丸く)
+      const ky=fy-DOORH/2, kx=dx+(d.d>0?3:-4);
+      ctx.fillStyle='#3a2a10';
+      ctx.fillRect(kx,ky-1,2,4);          // 取っ手の軸
+      ctx.fillStyle='#ffe66d';
+      ctx.fillRect(kx-1,ky,3,2);          // 丸ノブ
+      ctx.fillStyle='#fff'; ctx.fillRect(kx-1,ky,1,1); // ハイライト
+    }
+  }
+  // items
+  for(const it of items)drawItemIcon(it.t,it.c*TILE+8,FLOORY[it.l]);
+  // balloons (bonus stage)
+  if(state==='bonus'){
+    const BCOL=['#ff4136','#ffdc00','#2ecc40','#3ad0ff'];
+    for(const b of balloons){
+      const by=FLOORY[b.l]-14+Math.round(Math.sin((frame+b.bob)*0.08)*2);
+      ctx.fillStyle=BCOL[(b.x>>4)%4];
+      ctx.fillRect(b.x-4,by-10,8,8);
+      ctx.fillRect(b.x-3,by-11,6,1); ctx.fillRect(b.x-3,by-2,6,1);
+      ctx.fillStyle='#fff'; ctx.fillRect(b.x-3,by-9,2,2);
+      ctx.fillStyle='#ccc'; ctx.fillRect(b.x-1,by-1,1,6);
+    }
+  }
+  // waves(虹色の弧が転がって進む)
+  const RAINBOW=['#ff4136','#ff851b','#ffdc00','#2ecc40','#39cccc','#0074ff','#b10dff'];
+  for(const w of waves){
+    const cx=w.x, cy=FLOORY[w.l]-16, R=16, R2=9;
+    for(let i=0;i<=8;i++){
+      const a=-Math.PI/2+i*Math.PI/8;
+      ctx.fillStyle=RAINBOW[(i+(frame>>1))%RAINBOW.length];   // 流れる虹色
+      ctx.fillRect(cx+Math.round(Math.cos(a)*R)*w.d-1, cy+Math.round(Math.sin(a)*R)-1, 3, 3);
+    }
+    for(let i=0;i<=6;i++){
+      const a=-Math.PI/2+i*Math.PI/6;
+      ctx.fillStyle=RAINBOW[(i+3+(frame>>1))%RAINBOW.length];
+      ctx.fillRect(cx+Math.round(Math.cos(a)*R2)*w.d-1, cy+Math.round(Math.sin(a)*R2)-1, 2, 2);
+    }
+  }
+  // cats
+  for(const c of cats){
+    if(c.dead){
+      if(c.fly===1){
+        const pal=c.boss?BOSSPAL:CATPAL;
+        ctx.save(); ctx.translate(c.x,c.y-8); ctx.rotate(c.frot||0);
+        drawMap(c.boss?BOSS_A1:CAT_AIR1,pal,-8,-8,false); ctx.restore();
+      }
+      continue;
+    }
+    if(c.hide){
+      if((frame>>4)%2===0){
+        ctx.fillStyle='#ff4136';
+        ctx.fillRect(c.x-6,c.y-18,3,3); ctx.fillRect(c.x+3,c.y-18,3,3);
+      }
+      continue;
+    }
+    const pal=c.boss?BOSSPAL:CATPAL;
+    const FM=c.boss?{w1:BOSS_W1,w2:BOSS_W2,a1:BOSS_A1,a2:BOSS_A2}
+                   :{w1:CAT,w2:CAT_WALK2,a1:CAT_AIR1,a2:CAT_AIR2};
+    if(c.stun>0){
+      // ドアに挟まれて仰向けにひっくり返る(足を上にジタバタ)
+      ctx.save(); ctx.translate(c.x,c.y-8); ctx.rotate(Math.PI);
+      drawMap((frame>>3)%2?FM.a1:FM.a2,pal,-8,-8,false); ctx.restore();
+      if((frame>>3)%2===0){ctx.fillStyle='#ffe66d';ctx.fillText('*',c.x-2,c.y-20);}
+    }else if(c.mode==='air'){
+      // トランポリンでバタバタ
+      drawMap((frame>>2)%2?FM.a1:FM.a2,pal,c.x-8,c.y-16,c.dir<0);
+    }else{
+      const f=Math.floor(c.anim||0)%2;
+      const hop=f?0:1;                 // 主人公と同じ揺れ幅(0/1px)
+      drawMap(f?FM.w2:FM.w1,pal,c.x-8,c.y-16-hop,c.dir<0);
+    }
+  }
+  // player
+  {
+    const p=player;
+    if(state==='dying'){
+      // 回転しながら吹き飛ぶ
+      p.spin=(p.spin||0)+0.28;
+      ctx.save(); ctx.translate(p.x,p.y-8); ctx.rotate(p.spin);
+      drawMap(MOUSE_FLAIL,MOUSEPAL,-8,-8,false); ctx.restore();
+    } else if(p.stun>0){
+      // ドアに押し飛ばされて気絶(ふらつき+星)
+      const tilt=Math.sin(frame*0.5)*0.25;
+      ctx.save(); ctx.translate(p.x,p.y-8); ctx.rotate(tilt);
+      drawMap(MOUSE_FLAIL,MOUSEPAL,-8,-8,p.dir<0); ctx.restore();
+      if((frame>>2)%2===0){ ctx.fillStyle='#ffe66d'; ctx.font='7px monospace'; ctx.textAlign='center'; ctx.fillText('*',p.x-5,p.y-18); ctx.fillText('*',p.x+5,p.y-16); }
+    } else {
+    let spr=MOUSE, bob=0;
+    if(p.land>0){                    // 着地のつぶれ
+      spr=MOUSE_LAND;
+    } else if(p.mode==='air'){        // バウンス中は手足をバタバタ
+      spr=(frame>>2)%2?MOUSE_JUMP:MOUSE_FLAIL;
+    } else if(p.holdT>0){             // アイテムを頭上に掲げる
+      spr=MOUSE_JUMP;
+    } else if(p.walking){             // 部屋を歩く/ダッシュ=速歩き(アニメ加速はupdatePlayer側)
+      const f=Math.floor(p.anim)%2;
+      spr=f?MOUSE_WALK1:MOUSE_WALK2;
+      bob=f?0:1;
+    }
+    drawMap(spr,MOUSEPAL,p.x-8,p.y-16+bob,p.dir<0);
+    if(p.holdT>0 && p.holdItem!=null){          // 床→頭上へ持ち上げ、最後にふわっと消える
+      const prog=(30-p.holdT)/30;               // 0→1
+      const e=1-(1-prog)*(1-prog);              // ease-out
+      let iy=(p.y-2)-e*34;                       // 足元→頭上
+      let a=1;
+      if(prog>0.7){ a=Math.max(0,1-(prog-0.7)/0.3); iy-=(prog-0.7)*24; } // ふわっと上昇＋フェード
+      ctx.globalAlpha=a;
+      drawItemIcon(p.holdItem, p.x, iy);
+      ctx.globalAlpha=1;
+    }
+    }
+  }
+  // popups
+  ctx.font='7px monospace'; ctx.textAlign='center';
+  for(const pp of pops){ ctx.fillStyle='#ffe66d'; ctx.fillText(pp.txt,pp.x,pp.y); }
+  ctx.restore();
+
+  // ---- HUD ----
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,26);
+  ctx.font='8px monospace';
+  ctx.textAlign='left';
+  ctx.fillStyle='#f33'; ctx.fillText('1UP',6,9);
+  ctx.fillStyle='#fff'; ctx.fillText((''+score).padStart(7,'0'),6,19);
+  ctx.textAlign='center';
+  ctx.fillStyle='#f33'; ctx.fillText('HI SCORE',W/2,9);
+  ctx.fillStyle='#fff'; ctx.fillText((''+hi).padStart(7,'0'),W/2,19);
+  ctx.textAlign='right';
+  ctx.fillStyle='#f33'; ctx.fillText('ROUND '+round,W-6,9);
+  // 残り時間はROUNDの下(右列2段目)
+  ctx.fillStyle=roundHurry?((frame>>2)%2?'#ff4136':'#ffe66d'):'#6cf';
+  ctx.fillText('TIME '+Math.max(0,Math.ceil(roundT/60)),W-6,19);
+  // 残機(小さいネズミ顔を1UPの隣に)
+  for(let i=0;i<Math.max(0,lives);i++) drawLife(28+i*10, 2);
+  ctx.font='8px monospace';
+  ctx.textAlign='center';
+
+  // ゲーム中メッセージは共通の位置・サイズ(画面中央・18px太字)で表示
+  function banner(text,color,blink){
+    if(blink&&(frame>>3)%2!==0)return;
+    ctx.fillStyle=color; ctx.font='bold 18px monospace'; ctx.textAlign='center';
+    ctx.fillText(text,W/2,H/2);
+  }
+  if(state==='play' && hurryFired && hurryT<HURRY_SCROLL){
+    // ハリーアップ:残り10秒で1回だけ、プレイヤーのいる階を右→左に流れる
+    ctx.font='bold 14px monospace'; ctx.textAlign='left';
+    const txt='HURRY UP!';
+    const tw=txt.length*14*0.62;
+    const x=W-(hurryT/HURRY_SCROLL)*(W+tw);
+    const y=FLOORY[player.level]-20;
+    ctx.fillStyle=(frame>>2)%2?'#ff4136':'#ffe66d';
+    ctx.fillText(txt,x,y);
+    ctx.textAlign='center';
+  }
+  if(state==='bonus'){
+    if(bonusT>840) banner('BONUS STAGE!','#ffe66d',false);
+    else banner('TIME '+Math.max(0,Math.ceil(bonusT/60)),'#ffe66d',false); // 中央に大きく
+  }
+  if(state==='bonustally'){
+    ctx.fillStyle='rgba(0,0,0,0.80)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='#ffe66d'; ctx.font='bold 15px monospace';
+    ctx.fillText('BONUS RESULT',W/2,H/2-64);
+    // 獲得した風船を並べる(段数に応じて動的配置)
+    const BCOL=['#ff4136','#ffdc00','#2ecc40','#3ad0ff'];
+    const perRow=12, gap=15, rowH=15, gridTop=H/2-46;
+    const rows=Math.max(1,Math.ceil(bonusGot/perRow));
+    for(let n=0;n<tallyN;n++){
+      const row=(n/perRow)|0, col=n%perRow;
+      const rowCount=Math.min(perRow, bonusGot-row*perRow);
+      const bx=W/2-((rowCount-1)*gap)/2+col*gap;
+      const by=gridTop+row*rowH;
+      ctx.fillStyle=BCOL[n%4];
+      ctx.fillRect(bx-3,by-6,6,6);              // 風船
+      ctx.fillRect(bx-2,by-7,4,1); ctx.fillRect(bx-2,by,4,1);
+      ctx.fillStyle='#fff'; ctx.fillRect(bx-2,by-5,1,1);
+      ctx.fillStyle='#bbb'; ctx.fillRect(bx,by,1,4);  // 糸
+    }
+    const gridBottom=gridTop+rows*rowH;
+    ctx.fillStyle='#fff'; ctx.font='bold 11px monospace';
+    ctx.fillText('BALLOONS  '+tallyN+' / '+bonusTotal, W/2, gridBottom+14);
+    ctx.fillStyle='#0f8'; ctx.font='bold 18px monospace';
+    ctx.fillText('+'+tallyP, W/2, gridBottom+36);
+    if(tallyPerfect && tallyN>=bonusGot && (frame>>3)%2===0){
+      ctx.fillStyle='#f33'; ctx.font='bold 14px monospace';
+      ctx.fillText('PERFECT!',W/2,gridBottom+58);
+    }
+  }
+  if(state==='clear'){
+    banner('ROUND CLEAR!','#0f8',false);
+  }
+  if(state==='ready'){
+    ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.fillRect(0,0,W,H);
+    banner('START READY?','#0f8',true);
+  }
+  if(state==='over'){
+    // ゲーム画面を残したままオーバーレイ表示
+    ctx.fillStyle='rgba(0,0,0,0.55)'; ctx.fillRect(0,0,W,H);
+    ctx.textAlign='center';
+    ctx.fillStyle='#f33'; ctx.font='bold 22px monospace';
+    ctx.fillText('GAME OVER',W/2,H/2-16);
+    ctx.fillStyle='#fff'; ctx.font='9px monospace';
+    ctx.fillText('SCORE  '+(''+score).padStart(7,'0'),W/2,H/2+8);
+    ctx.fillStyle='#ffe66d';
+    ctx.fillText('HI SCORE  '+(''+hi).padStart(7,'0'),W/2,H/2+22);
+    if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='8px monospace'; ctx.fillText('PUSH BUTTON',W/2,H/2+46); }
+  }
+}
+
+// ---------- title / game over (専用画面) ----------
+const LOGO_COL=['#ff4136','#ff9f40','#ffe66d','#2ecc40','#3ad0ff','#a06cff'];
+function drawLogo(text,cx,cy,size){
+  ctx.font='bold '+size+'px monospace'; ctx.textBaseline='alphabetic';
+  const widths=[...text].map(ch=>ctx.measureText(ch).width);
+  const total=widths.reduce((a,b)=>a+b,0);
+  let x=cx-total/2;
+  for(let i=0;i<text.length;i++){
+    ctx.fillStyle=LOGO_COL[i%LOGO_COL.length];
+    ctx.textAlign='left';
+    ctx.fillText(text[i],x,cy);
+    x+=widths[i];
+  }
+  ctx.textAlign='center';
+}
+function drawTitle(){
+  ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+  ctx.textAlign='center';
+  drawLogo('CHUPPY',W/2,72,30);
+  // タイトル直下にハイスコアを大きく
+  ctx.fillStyle='#f33'; ctx.font='bold 13px monospace';
+  ctx.fillText('HI SCORE '+(''+hi).padStart(7,'0'),W/2,98);
+  // キャラクター紹介
+  const rows=[
+    [MOUSE,MOUSEPAL,'OFFICER','.RECOVER THE STOLEN TREASURES'],
+    [CAT,CATPAL,'SNEAK CAT','.CHASES THE OFFICER AROUND'],
+    [BOSS_W1,BOSSPAL,'BIG BOSS','.LEADER CAT - SOMETIMES HIDES'],
+  ];
+  let ry=132;
+  for(const [spr,pal,name,desc] of rows){
+    drawMap(spr,pal,50,ry-13,false);
+    ctx.textAlign='left'; ctx.fillStyle='#fff'; ctx.font='9px monospace';
+    ctx.fillText(name,74,ry-4);
+    ctx.fillStyle='#9aa0c0'; ctx.font='7px monospace';
+    ctx.fillText(desc,74,ry+6);
+    ry+=30;
+  }
+  ctx.textAlign='center';
+  // --- 高得点デモ: 主人公が左から順にアイテムを取り、得点が上がる ---
+  ctx.fillStyle='#ffe66d'; ctx.font='bold 9px monospace';
+  ctx.fillText('HIGH SCORE TIPS',W/2,226);
+  {
+    const N=5, gap=40, iy=258;
+    const startX=W/2-((N-1)*gap)/2;
+    const perItem=50, walkT=18, riseDur=12, popDur=18, cycle=N*perItem+60;
+    const ph=frame%cycle;
+    const collectT=(t)=>t*perItem+walkT;
+    const cur=Math.min(N-1, Math.floor(ph/perItem));
+    const local=ph-cur*perItem;
+    const prevX=cur===0? startX-34 : startX+(cur-1)*gap;
+    const curX=startX+cur*gap;
+    let ox, walking;
+    if(ph>=N*perItem){ ox=startX+(N-1)*gap; walking=false; }
+    else if(local<walkT){ ox=prevX+(curX-prevX)*(local/walkT); walking=true; }
+    else { ox=curX; walking=false; }
+    // アイテム(未取得=棚 / 取得中=持ち上げてフェード / 取得後=消える)
+    for(let t=0;t<N;t++){
+      const ix=startX+t*gap, dt=ph-collectT(t);
+      if(dt<0){ drawItemIcon(t,ix,iy); }
+      else if(dt<riseDur){
+        const pr=dt/riseDur, e=1-(1-pr)*(1-pr);
+        ctx.globalAlpha=Math.max(0,1-pr); drawItemIcon(t,ix,iy-4-e*18); ctx.globalAlpha=1;
+      }
+    }
+    // 主人公(歩く→掲げる)
+    const atItem=(ph<N*perItem && local>=walkT);
+    const spr=atItem?MOUSE_JUMP:(walking?((frame/6|0)%2?MOUSE_WALK1:MOUSE_WALK2):MOUSE);
+    drawMap(spr,MOUSEPAL,Math.round(ox)-8,iy-16,false);
+    // +点数: アイテムが消えた後にキャラの頭上へ(ふわっと上がって消える)
+    if(ph<N*perItem){
+      const idt=local-walkT;                        // 取得からの経過
+      if(idt>=riseDur && idt<riseDur+popDur){
+        const k=(idt-riseDur)/popDur;               // 0→1
+        ctx.globalAlpha=Math.max(0,1-k);
+        ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+        ctx.fillText('+'+ITEMDEF[cur].pts, curX, iy-17-k*8);   // 頭上
+        ctx.globalAlpha=1;
+      }
+    }
+    ctx.fillStyle='#9aa0c0'; ctx.font='7px monospace'; ctx.textAlign='center';
+    ctx.fillText('GRAB ITEMS IN ORDER TO SCORE BIG', W/2, 300);
+  }
+
+  ctx.fillStyle='#fff'; ctx.font='8px monospace';
+  ctx.fillText('ARROWS:MOVE   A:DOOR   B:DASH',W/2,326);
+  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.fillText('PUSH BUTTON',W/2,342); }
+  ctx.fillStyle='#c7913e'; ctx.font='7px monospace';
+  ctx.fillText('© 2026 80GAME   ALL RIGHTS RESERVED',W/2,H-6);
+  ctx.fillStyle='#446'; ctx.font='7px monospace';
+  ctx.fillText('[B] BONUS TEST',W/2,H-16);
+}
+// ---------- main loop ----------
+let frame=0;
+function tick(){
+  frame++;
+  if(state==='title'){
+    if(inp.aEdge){ inp.aEdge=false; startGame(); }
+  }else if(state==='play'){
+    updatePlay();
+  }else if(state==='dying'){
+    // 回転しながら吹き飛ぶ
+    player.x+=player.fvx||0; player.y+=player.fvy||0; player.fvy=(player.fvy||0)+0.3;
+    stTimer--;
+    if(stTimer<=0){
+      lives--;
+      if(lives<0){ state='over'; stTimer=180; }
+      else{ resetPositions(); combo=0; lastItemType=-1; state='ready'; stTimer=80; }
+    }
+  }else if(state==='ready'){
+    stTimer--;
+    if(stTimer<=0){ state='play'; startMusic(); }
+  }else if(state==='clear'){
+    stTimer--;
+    if(stTimer<=0){
+      round++;
+      if(round%3===0)startBonus();            // 3ラウンドごとにボーナスステージ
+      else{ newRound(); state='ready'; stTimer=100; }
+    }
+  }else if(state==='bonus'){
+    updateBonus();
+  }else if(state==='bonustally'){
+    updateTally();
+  }else if(state==='over'){
+    stTimer--;
+    if(stTimer<=0||inp.aEdge){ inp.aEdge=false; state='title'; newRound(); }
+  }
+  draw();
+  requestAnimationFrame(tick);
+}
+newRound();
+resize();
+setTimeout(resize,100);
+requestAnimationFrame(tick);
+
+// PWA: Service Worker登録（https配信時のみ動作。file://やローカル単体起動では静かにスキップ）
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>DIGDIG — 戦略的穴掘りアクション</title>
+<meta name="theme-color" content="#8f0f13">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DIGDIG">
+<style>
+  :root{
+    --deck:#14161F; --deck2:#1C2030; --panel:#232838;
+    --amber:#FFC53D; --red:#E5484D; --red-glow:#FF6B6E;
+    --ink:#EDEFF7; --dim:#8A90A8;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;overflow:hidden;}
+  body{
+    background:var(--deck);
+    background-image:
+      radial-gradient(ellipse 120% 60% at 50% -10%, #232B4A 0%, transparent 60%),
+      repeating-linear-gradient(45deg, transparent 0 14px, rgba(255,255,255,.012) 14px 15px);
+    font-family:"Avenir Next","Segoe UI",system-ui,sans-serif;
+    color:var(--ink);
+    touch-action:none;
+    user-select:none;-webkit-user-select:none;
+    display:flex;flex-direction:column;
+    height:100dvh;
+  }
+  /* ===== 画面（筐体モニタ部）===== */
+  #screenArea{
+    flex:1 1 auto;min-height:0;
+    display:flex;align-items:center;justify-content:center;
+    padding:0;
+    position:relative;
+  }
+  #bezel{
+    max-width:100%;max-height:100%;
+  }
+  canvas#cv{
+    display:block;
+    image-rendering:pixelated;
+    image-rendering:crisp-edges;
+    background:#000;
+  }
+  /* ===== コントロールデッキ（CHUPPY デザインシステム）===== */
+  :root{
+    --deck-bg:#8f0f13; --deck-edge:#5c0a0d; --control-base:#1c1c1e;
+    --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#cc9999;
+    --btn-size:64px; --btn-gap:12px; --dpad-size:128px;
+    --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
+    --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
+  }
+  #deck{
+    flex:0 0 auto;
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+    background:var(--deck-bg);
+    border-top:4px solid var(--deck-edge);
+    display:flex;align-items:center;justify-content:space-between;
+  }
+  /* 方向キー */
+  #dpad{
+    position:relative;width:var(--dpad-size);height:var(--dpad-size);
+    touch-action:none;flex:0 0 auto;
+  }
+  #dcross{
+    position:absolute;inset:8px;
+    background:var(--control-base);border-radius:6px;
+    box-shadow:var(--shadow-dpad);
+    clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);
+    transition:filter .05s;
+  }
+  #dcross.on{filter:brightness(1.25);}
+  #dcross::after{                    /* 中央のくぼみ */
+    content:"";position:absolute;left:50%;top:50%;
+    width:14px;height:14px;transform:translate(-50%,-50%);
+    border-radius:50%;background:#141416;box-shadow:inset 0 2px 3px #000;
+  }
+  .dz{position:absolute;background:transparent;z-index:2;touch-action:none;}
+  /* 上下左右4分割の当たり判定（十字は象徴、判定は大きく） */
+  #dU{left:0;top:0;width:100%;height:50%;}
+  #dD{left:0;bottom:0;width:100%;height:50%;}
+  #dL{left:0;top:0;width:50%;height:100%;}
+  #dR{right:0;top:0;width:50%;height:100%;}
+  /* アクションボタン B→A */
+  #btns{display:flex;gap:var(--btn-gap);align-items:center;flex:0 0 auto;}
+  .ab{
+    width:var(--btn-size);height:var(--btn-size);border-radius:50%;
+    background:var(--control-base);border:none;
+    box-shadow:var(--shadow-btn);
+    font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:1px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    line-height:1;transition:filter .05s, transform .05s;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
+  }
+  .ab.on{filter:brightness(1.4);transform:translateY(2px);}
+  #bB{color:var(--label-b);}
+  #bA{color:var(--label-a);}
+  .ab small{font-size:9px;color:var(--label-sub);font-weight:normal;letter-spacing:0;margin-top:2px;}
+  /* ===== タイトルオーバーレイ ===== */
+  #title{
+    position:fixed;inset:0;z-index:20;
+    background:
+      radial-gradient(ellipse 100% 55% at 50% 0%, #1B2350 0%, transparent 55%),
+      #0B0D18;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    gap:22px;text-align:center;padding:24px;
+    transition:opacity .35s;
+  }
+  #title.hidden{opacity:0;pointer-events:none;}
+  .logo{
+    font-weight:900;font-size:clamp(40px,13vw,64px);line-height:.95;
+    letter-spacing:.02em;
+    color:var(--amber);
+    text-shadow:
+      3px 3px 0 #B4560A, 6px 6px 0 #5C2E0D,
+      0 0 34px rgba(255,197,61,.35);
+    font-family:"Arial Black","Avenir Next",sans-serif;
+  }
+  .logo small{display:block;font-size:clamp(11px,3vw,14px);letter-spacing:.55em;color:#7EC8E3;
+    text-shadow:none;margin-top:10px;font-weight:700;}
+  #startBtn{
+    margin-top:6px;
+    font-size:15px;font-weight:800;letter-spacing:.3em;
+    color:#3A2A00;background:linear-gradient(180deg,#FFD873,#F0A81F);
+    border:none;border-radius:999px;padding:16px 42px;
+    box-shadow:0 6px 0 #9C6A00, 0 12px 24px rgba(0,0,0,.5);
+    animation:pulse 1.4s ease-in-out infinite;
+  }
+  #startBtn:active{transform:translateY(4px);box-shadow:0 2px 0 #9C6A00;}
+  @keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
+  @media (prefers-reduced-motion:reduce){#startBtn{animation:none}}
+  @media (max-height:680px){
+    #dpad{width:112px;height:112px;}
+    .ab{width:56px;height:56px;}
+  }
+  .howto{
+    display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;
+    font-size:14px;color:#B8C0DE;text-align:left;max-width:340px;line-height:1.5;
+  }
+  .howto b{color:var(--amber);font-weight:800;}
+  .chip{
+    justify-self:end;
+    font-size:11px;font-weight:800;padding:4px 9px;border-radius:6px;
+    background:#232838;border:1px solid #3A4260;color:#DCE1F5;white-space:nowrap;
+  }
+  #finalScore{font-size:13px;color:var(--dim);letter-spacing:.15em;display:none;}
+  #credit{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));font-size:10px;color:#4A5170;letter-spacing:.1em;}
+</style>
+</head>
+<body>
+
+<div id="screenArea">
+  <div id="bezel"><canvas id="cv" width="224" height="288"></canvas></div>
+</div>
+
+<div id="deck">
+  <div id="dpad">
+    <div id="dcross"></div>
+    <div class="dz" id="dU"></div>
+    <div class="dz" id="dD"></div>
+    <div class="dz" id="dL"></div>
+    <div class="dz" id="dR"></div>
+  </div>
+  <div id="btns">
+    <button class="ab" id="bB" aria-label="ポンプ">B</button>
+    <button class="ab" id="bA" aria-label="モリ">A</button>
+  </div>
+</div>
+
+<div id="title">
+  <div class="logo">DIG<br>DIG<small>戦略的穴掘りアクション</small></div>
+  <div class="howto">
+    <span class="chip">十字キー</span><span>地中を<b>掘って</b>移動。動いている間だけ音楽が鳴る</span>
+    <span class="chip">PUMP</span><span>モリを撃つ → 連打で敵を<b>ふくらませて破裂</b>させろ</span>
+    <span class="chip">岩</span><span>下を掘れば落ちる。<b>まとめて潰せば大量得点</b>。岩2つで野菜出現</span>
+  </div>
+  <div id="finalScore"></div>
+  <button id="startBtn">TAP TO START</button>
+  <div id="credit">ORIGINAL HOMAGE GAME — NOT AFFILIATED WITH BANDAI NAMCO</div>
+</div>
+
+<script>
+"use strict";
+/* =========================================================
+   DIGDIG — アーケード風・戦略的穴掘りアクション
+   ・224×288 縦画面 / 16pxタイル 14×18
+   ・微細グリッド8pxで掘削管理（薄壁・岩貫通の判定基盤）
+   ・敵ステートマシン: normal / ghost(目変化) / flee(撤退)
+   ・原作仕様準拠: 移動中のみBGM / 破裂音=高速音階 / 残1匹逃走
+   ========================================================= */
+(function(){
+const TILE=16, COLS=14, ROWS=18, W=COLS*TILE, H=ROWS*TILE;
+const F=8, FCOLS=COLS*2, FROWS=ROWS*2;      // 微細セル
+const SKY=2;                                 // 上2段=空/地表
+const START_C=6, START_R=9;
+
+// ---------- カラー ----------
+const LAYERS=["#F8B838","#E87800","#C84800","#7C2818"];
+const LAYER_DK=["#E09820","#C86000","#A03800","#601C10"];
+const TUNNEL="#000000";
+
+// ---------- DOM ----------
+const cv=document.getElementById("cv");
+const ctx=cv.getContext("2d");
+const titleEl=document.getElementById("title");
+const startBtn=document.getElementById("startBtn");
+const finalEl=document.getElementById("finalScore");
+
+// オフスクリーン（地層・トンネル）
+function mkCanvas(){const c=document.createElement("canvas");c.width=W;c.height=H;return c;}
+const dirtCv=mkCanvas(), dirtCtx=dirtCv.getContext("2d");
+const tunCv=mkCanvas(),  tunCtx=tunCv.getContext("2d");
+
+// ---------- 状態 ----------
+const G={mode:"title", round:1, score:0, hi:10000, lives:3, timer:0,
+         rocksDropped:0, roundTime:0, speedLv:0, extended:false};
+let dug=new Uint8Array(FCOLS*FROWS);
+let player=null, enemies=[], rocks=[], veg=null, popups=[], parts=[];
+let harpoon=null;                // {x,y,dx,dy,len}
+let rngSeed=1234567;
+
+function rnd(){rngSeed=(rngSeed*1103515245+12345)&0x7fffffff;return rngSeed/0x7fffffff;}
+function ri(a,b){return a+Math.floor(rnd()*(b-a+1));}
+
+// ---------- 入力 ----------
+const input={dir:null,pump:false,pumpEdge:false};
+const keyDirs={ArrowUp:"up",ArrowDown:"down",ArrowLeft:"left",ArrowRight:"right",
+               w:"up",s:"down",a:"left",d:"right"};
+const held=new Set();
+window.addEventListener("keydown",e=>{
+  if(keyDirs[e.key]){held.add(keyDirs[e.key]);input.dir=keyDirs[e.key];e.preventDefault();}
+  if(e.key===" "||e.key==="z"||e.key==="x"){if(!input.pump)input.pumpEdge=true;input.pump=true;e.preventDefault();}
+  if(G.mode==="title"&&(e.key===" "||e.key==="Enter"))startGame();
+});
+window.addEventListener("keyup",e=>{
+  if(keyDirs[e.key]){held.delete(keyDirs[e.key]);input.dir=held.size?[...held].pop():null;}
+  if(e.key===" "||e.key==="z"||e.key==="x")input.pump=false;
+});
+
+// 仮想十字キー（十字は象徴・判定は領域全体、CHUPPY拡張ガイドの上下左右4分割）
+const dpad=document.getElementById("dpad");
+const dcross=document.getElementById("dcross");
+let dpadPid=null;
+function resolveDir(dx,dy){
+  if(Math.hypot(dx,dy)<12)return null;              // 中央デッドゾーン
+  const ax=Math.abs(dx),ay=Math.abs(dy);
+  const hx=dx>0?"right":"left", hy=dy>0?"down":"up";
+  // 斜め入力：現在の進行方向と垂直な軸を優先 → L字スライドで自然に曲がれる
+  if(Math.min(ax,ay)>Math.max(ax,ay)*0.45&&player){
+    const horiz=(player.dir==="left"||player.dir==="right");
+    return horiz?hy:hx;
+  }
+  return ax>ay?hx:hy;
+}
+function dpadFrom(ev){
+  const r=dpad.getBoundingClientRect();
+  const dx=ev.clientX-(r.left+r.width/2), dy=ev.clientY-(r.top+r.height/2);
+  return resolveDir(dx,dy);
+}
+function setDpad(d){
+  input.dir=d;
+  dcross.classList.toggle("on",!!d);               // 押下で十字全体を brightness(1.25)
+}
+dpad.addEventListener("pointerdown",ev=>{ensureAudio();dpadPid=ev.pointerId;dpad.setPointerCapture(ev.pointerId);setDpad(dpadFrom(ev));ev.preventDefault();});
+dpad.addEventListener("pointermove",ev=>{if(ev.pointerId===dpadPid)setDpad(dpadFrom(ev));});
+function dpadEnd(ev){if(ev.pointerId===dpadPid){dpadPid=null;setDpad(null);}}
+dpad.addEventListener("pointerup",dpadEnd);
+dpad.addEventListener("pointercancel",dpadEnd);
+dpad.addEventListener("pointerleave",dpadEnd);
+
+// アクションボタン：B=ホールド（連打・長押しでポンプ）／A=エッジ（モリ発射の瞬間）
+const bB=document.getElementById("bB"), bA=document.getElementById("bA");
+bB.addEventListener("pointerdown",ev=>{ensureAudio();bB.setPointerCapture(ev.pointerId);
+  if(G.mode==="title"){startGame();bB.classList.add("on");ev.preventDefault();return;}
+  input.pump=true;input.pumpEdge=true;bB.classList.add("on");ev.preventDefault();});
+function bBup(){input.pump=false;bB.classList.remove("on");}
+bB.addEventListener("pointerup",bBup);
+bB.addEventListener("pointercancel",bBup);
+bA.addEventListener("pointerdown",ev=>{ensureAudio();bA.setPointerCapture(ev.pointerId);
+  if(G.mode==="title"){startGame();bA.classList.add("on");ev.preventDefault();return;}
+  input.pumpEdge=true;input.pump=true;bA.classList.add("on");ev.preventDefault();});
+function bAup(){input.pump=false;bA.classList.remove("on");}
+bA.addEventListener("pointerup",bAup);
+bA.addEventListener("pointercancel",bAup);
+document.body.addEventListener("touchstart",e=>{if(e.target.closest("#deck"))e.preventDefault();},{passive:false});
+document.addEventListener("contextmenu",e=>e.preventDefault());
+
+startBtn.addEventListener("click",()=>{ensureAudio();startGame();});
+cv.addEventListener("pointerdown",ev=>{ensureAudio();if(G.mode==="title")startGame();ev.preventDefault();});
+
+// ---------- サウンド（Web Audio）----------
+let AC=null,master=null;
+function ensureAudio(){
+  if(AC){if(AC.state==="suspended")AC.resume();return;}
+  const Ctor=window.AudioContext||window.webkitAudioContext;
+  if(!Ctor)return;
+  AC=new Ctor();
+  if(AC.state==="suspended")AC.resume();
+  master=AC.createGain();master.gain.value=0.55;master.connect(AC.destination);
+}
+function tone(freq,dur,type,vol,when,slideTo){
+  if(!AC)return;
+  const t=(when!==undefined?when:AC.currentTime);
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type=type||"square";o.frequency.setValueAtTime(freq,t);
+  if(slideTo)o.frequency.exponentialRampToValueAtTime(Math.max(20,slideTo),t+dur);
+  g.gain.setValueAtTime(vol||0.1,t);
+  g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  o.connect(g);g.connect(master);
+  o.start(t);o.stop(t+dur+0.02);
+}
+// 破裂音：音階の超高速再生（原作手法へのオマージュ）
+function sfxPop(){if(!AC)return;const t=AC.currentTime;
+  for(let i=0;i<9;i++)tone(1400*Math.pow(0.82,i),0.05,"square",0.14,t+i*0.022);}
+function sfxHarpoon(){tone(240,0.09,"square",0.12,undefined,900);}
+function sfxPump(){tone(170,0.1,"square",0.13,undefined,80);}
+function sfxFire(){if(!AC)return;const t=AC.currentTime;      // 極端な低音+高音の組合せ
+  tone(48,0.5,"sawtooth",0.16,t);
+  for(let i=0;i<6;i++)tone(1750+((i%2)*220),0.06,"square",0.06,t+i*0.07);}
+function sfxRockFall(){tone(210,0.35,"triangle",0.14,undefined,55);}
+function sfxRockLand(){if(!AC)return;const t=AC.currentTime;tone(60,0.22,"triangle",0.2,t);tone(42,0.3,"sine",0.18,t+0.02);}
+function sfxVeg(){if(!AC)return;const t=AC.currentTime;tone(660,0.08,"square",0.12,t);tone(990,0.12,"square",0.12,t+0.08);}
+function sfxGhost(){if(!AC)return;const t=AC.currentTime;for(let i=0;i<4;i++)tone(300+i*60,0.09,"triangle",0.07,t+i*0.05);}
+function sfxSpeedUp(){if(!AC)return;const t=AC.currentTime;[440,554,659].forEach((f,i)=>tone(f,0.09,"square",0.1,t+i*0.08));}
+function jingleClear(){if(!AC)return;const t=AC.currentTime;
+  [523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,0.13,"square",0.12,t+i*0.1));}
+function jingleDeath(){if(!AC)return;const t=AC.currentTime;
+  [740,622,523,440,349,262,196].forEach((f,i)=>tone(f,0.16,"triangle",0.13,t+i*0.11));}
+function jingleFlee(){if(!AC)return;const t=AC.currentTime;
+  [392,523,392,523].forEach((f,i)=>tone(f,0.07,"square",0.09,t+i*0.07));}
+// 歩行メロディ：移動している間だけ進む（原作の核心仕様）
+const MEL=[329.6,392.0,440.0,392.0,329.6,261.6,293.7,329.6];
+const BAS=[164.8,164.8,220.0,220.0,164.8,130.8,146.8,164.8];
+let melIdx=0, melT=0;
+function stepMusic(dt,moving){
+  if(!AC)return;
+  if(!moving)return;              // 止まると音楽も止まる
+  melT-=dt;
+  if(melT<=0){
+    tone(MEL[melIdx],0.1,"square",0.09);
+    tone(BAS[melIdx],0.11,"triangle",0.07);
+    melIdx=(melIdx+1)%MEL.length;
+    melT+=0.115;
+  }
+}
+// ---- 楽曲シーケンサ（タイトル／ハリーアップのループ、開始ファンファーレ）----
+// [メロディHz, ベースHz, 拍長sec]  ※すべてオリジナル楽曲
+const TITLE_SEQ=[
+  [440,110,.20],[523,0,.20],[659,165,.20],[587,0,.20],
+  [523,110,.20],[440,0,.20],[392,131,.40],
+  [440,110,.20],[523,0,.20],[659,165,.20],[784,0,.20],
+  [659,110,.20],[523,0,.20],[587,147,.40],
+  [0,110,.20],[392,0,.20],[440,165,.20],[523,0,.20],
+  [440,110,.20],[392,0,.20],[330,131,.40],
+  [349,87,.20],[392,0,.20],[440,110,.30],[392,0,.10],[440,131,.60],
+];
+const HURRY_SEQ=[
+  [659,165,.09],[622,0,.09],[659,165,.09],[622,0,.09],
+  [659,131,.09],[494,0,.09],[587,147,.09],[523,0,.09],
+  [440,110,.18],[0,0,.09],[440,110,.09],
+];
+const OVER_SEQ=[
+  [523,131,.22],[494,0,.22],[440,110,.22],[392,0,.22],
+  [349,87,.30],[330,0,.30],[262,65,.80],
+];
+let mus={mode:null,i:0,t:0}, prevGMode=null;
+function playSeq(seq,i){
+  const [f,b,dur]=seq[i%seq.length];
+  if(f)tone(f,dur*0.92,"square",0.075);
+  if(b)tone(b,dur*0.95,"triangle",0.055);
+  return dur;
+}
+function startFanfare(){                 // スタートミュージック（約1.6秒）
+  if(!AC)return;const t=AC.currentTime;
+  const n=[[262,.12],[330,.12],[392,.12],[523,.12],[392,.12],[523,.12],[659,.12],[784,.5]];
+  let at=0;
+  for(const[f,d]of n){tone(f,d,"square",0.11,t+at);tone(f/2,d,"triangle",0.07,t+at);at+=d;}
+}
+function musicUpdate(dt){
+  // モード遷移トリガ
+  if(G.mode!==prevGMode){
+    if(G.mode==="ready"||G.mode==="inter")startFanfare();
+    prevGMode=G.mode;
+  }
+  if(!AC)return;
+  const fleeing=G.mode==="play"&&enemies.some(e=>!e.dead&&e.state==="flee");
+  const want=G.mode==="title"?"title":fleeing?"hurry":G.mode==="over"?"over":null;
+  if(want!==mus.mode){mus.mode=want;mus.i=0;mus.t=0;}
+  if(!want)return;
+  if(want==="over"&&mus.i>=OVER_SEQ.length)return;   // ゲームオーバー曲は1回のみ
+  mus.t-=dt;
+  if(mus.t<=0){
+    const seq=want==="title"?TITLE_SEQ:want==="hurry"?HURRY_SEQ:OVER_SEQ;
+    mus.t+=playSeq(seq,mus.i);
+    mus.i++;
+  }
+}
+
+// ---------- 掘削グリッド ----------
+function dugAt(fx,fy){
+  if(fx<0||fx>=FCOLS)return false;
+  if(fy<0)return true;
+  if(fy>=FROWS)return false;
+  if(fy<SKY*2)return true;                    // 空・地表は常に開放
+  return !!dug[fy*FCOLS+fx];
+}
+function setDug(fx,fy){
+  if(fx<0||fy<0||fx>=FCOLS||fy>=FROWS)return;
+  dug[fy*FCOLS+fx]=1;
+}
+function carveRect(x0,y0,x1,y1){
+  const fx0=Math.max(0,Math.floor(x0/F)),fx1=Math.min(FCOLS-1,Math.floor((x1-0.01)/F));
+  const fy0=Math.max(0,Math.floor(y0/F)),fy1=Math.min(FROWS-1,Math.floor((y1-0.01)/F));
+  for(let fy=fy0;fy<=fy1;fy++)for(let fx=fx0;fx<=fx1;fx++)setDug(fx,fy);
+  const top=Math.max(SKY*TILE,y0);
+  if(y1>top){
+    tunCtx.fillStyle=TUNNEL;
+    tunCtx.fillRect(Math.round(x0),Math.round(top),Math.round(x1-x0),Math.round(y1-top));
+    jagEdges(Math.round(x0),Math.round(top),Math.round(x1),Math.round(y1));
+  }
+}
+function jagHash(a,b){
+  let h=((a|0)*374761393+(b|0)*668265263)|0;
+  h=(h^(h>>>13))*1274126177;
+  return (((h^(h>>>16))>>>0)&7)<5;          // 約6割の確率で歯を出す
+}
+function jagEdges(x0,y0,x1,y1){
+  const t=2;
+  tunCtx.fillStyle=TUNNEL;
+  for(let x=Math.floor(x0/4)*4;x<x1;x+=4){   // 上下の縁
+    if(y0>SKY*TILE&&jagHash(x,y0))tunCtx.fillRect(x,Math.max(SKY*TILE,y0-t),3,t);
+    if(y1<H&&jagHash(x,y1))tunCtx.fillRect(x,y1,3,t);
+  }
+  for(let y=Math.floor(y0/4)*4;y<y1;y+=4){   // 左右の縁
+    if(y<SKY*TILE)continue;
+    if(x0>0&&jagHash(x0,y))tunCtx.fillRect(Math.max(0,x0-t),y,t,3);
+    if(x1<W&&jagHash(x1,y))tunCtx.fillRect(Math.min(W-t,x1),y,t,3);
+  }
+}
+function carveAround(x,y){carveRect(x-7,y-7,x+7,y+7);}
+function carveTile(c,r){carveRect(c*TILE+1,r*TILE+1,c*TILE+TILE-1,r*TILE+TILE-1);
+  // 微細セルはタイル全体を開放
+  for(let fy=r*2;fy<r*2+2;fy++)for(let fx=c*2;fx<c*2+2;fx++)setDug(fx,fy);}
+function tileOpen(c,r){                        // 敵が通行できる完全開通タイルか
+  if(c<0||c>=COLS||r<1||r>=ROWS)return false;
+  if(r<SKY)return r===1;
+  return dugAt(c*2,r*2)&&dugAt(c*2+1,r*2)&&dugAt(c*2,r*2+1)&&dugAt(c*2+1,r*2+1);
+}
+
+// ---------- レベル生成 ----------
+const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+const OPP={up:"down",down:"up",left:"right",right:"left"};
+function newRound(){
+  dug=new Uint8Array(FCOLS*FROWS);
+  tunCtx.clearRect(0,0,W,H);
+  // 地層描画
+  dirtCtx.clearRect(0,0,W,H);
+  for(let L=0;L<4;L++){
+    const y=(SKY+L*4)*TILE;
+    dirtCtx.fillStyle=LAYERS[L];dirtCtx.fillRect(0,y,W,4*TILE);
+    dirtCtx.fillStyle=LAYER_DK[L];
+    for(let ry=0;ry<4*TILE;ry+=4)
+      for(let rx=((ry/4)%2)*4;rx<W;rx+=8)
+        dirtCtx.fillRect(rx,y+ry,3,1);
+  }
+  // 敵ポケット
+  enemies=[];rocks=[];veg=null;popups=[];parts=[];harpoon=null;
+  G.rocksDropped=0;G.roundTime=0;G.speedLv=0;
+  const n=Math.min(2+G.round,8);   // R1:3 R2:4 … R6:8
+  const used=[];
+  let guard=0;
+  while(enemies.length<n&&guard++<400){
+    const horiz=rnd()<0.7;
+    const len=ri(3,4);
+    const c=ri(1,horiz?COLS-2-len:COLS-2), r=ri(3,horiz?ROWS-2:ROWS-2-len);
+    const mid=Math.floor(len/2);
+    const ec=c+(horiz?mid:0), er=r+(horiz?0:mid);
+    let bad=false;
+    // ポケットの全タイルが降下経路（中央3列×地表〜定位置+1）に触れないこと
+    for(let i=0;i<len;i++){
+      const cc=c+(horiz?i:0), rr=r+(horiz?0:i);
+      if(Math.abs(cc-START_C)<2&&rr<=START_R+1)bad=true;
+    }
+    // 敵の出現位置はスタート地点からマンハッタン距離5タイル以上
+    if(Math.abs(ec-START_C)+Math.abs(er-START_R)<5)bad=true;
+    for(const u of used)if(Math.abs(u.c-c)<4&&Math.abs(u.r-r)<3)bad=true;
+    if(bad)continue;
+    for(let i=0;i<len;i++)carveTile(c+(horiz?i:0),r+(horiz?0:i));
+    used.push({c,r});
+    const gabura=enemies.length<Math.max(1,Math.floor(n/3));
+    enemies.push(mkEnemy(gabura?"gabura":"fuwan",ec*TILE+8,er*TILE+8));
+  }
+  // 岩
+  const nr=ri(4,6);guard=0;
+  while(rocks.length<nr&&guard++<300){
+    const c=ri(1,COLS-2),r=ri(3,ROWS-3);
+    if(tileOpen(c,r)||tileOpen(c,r+1))continue;
+    if(c===START_C&&r<=START_R+1)continue;
+    if(rocks.some(k=>Math.abs(k.c-c)<2&&Math.abs(k.r-r)<2))continue;
+    rocks.push({c,r,x:c*TILE+8,y:r*TILE+8,state:"idle",t:0,fellFrom:0});
+  }
+  spawnPlayer(true);   // ラウンド開始は地表から
+}
+function mkEnemy(type,x,y){
+  return {type,x,y,spawnX:x,spawnY:y,dir:rnd()<0.5?"left":"right",face:"left",
+    state:"normal",inflate:0,inflateT:0,
+    ghostT:4+rnd()*6,ghostMin:0,
+    fire:"none",fireT:0,fireDir:"left",
+    fleePhase:0,dead:false,animT:rnd()*10};
+}
+function spawnPlayer(atTop){
+  player={x:START_C*TILE+8,y:(atTop?1:START_R)*TILE+8,dir:atTop?"down":"right",
+          face:"right",moving:false,
+          alive:true,pumpT:0,target:null,animT:0,deadT:0};
+  harpoon=null;
+}
+
+// ---------- 移動 ----------
+function centerOf(v){return Math.round((v-8)/TILE)*TILE+8;}
+function tryMove(e,want,speed,digs,dt){
+  e.moving=false;
+  if(!want)return;
+  const [dx,dy]=DIRS[want];
+  const cx=centerOf(e.x), cy=centerOf(e.y);
+  const sameAxis=(DIRS[e.dir][0]!==0)===(dx!==0);
+  if(want!==e.dir){
+    if(sameAxis){e.dir=want;}                       // 反転は即時
+    else{
+      const off=(dx!==0)?Math.abs(e.y-cy):Math.abs(e.x-cx);
+      if(off<=speed*dt+0.01){e.x=cx;e.y=cy;e.dir=want;}
+      // 曲がれない間は現在方向へ進み続け、次の中心で旋回（先行入力）
+    }
+  }
+  const [mx,my]=DIRS[e.dir];
+  let nx=e.x+mx*speed*dt, ny=e.y+my*speed*dt;
+  // レーン吸着
+  if(mx!==0)ny=cy; else nx=cx;
+  // 境界
+  const minY=(digs||tileOpen(Math.round((nx-8)/TILE),1))?TILE+8:TILE+8;
+  nx=Math.max(8,Math.min(W-8,nx));
+  ny=Math.max(minY,Math.min(H-8,ny));
+  if(!digs){
+    // 前縁の微細セルが開通しているか
+    const fx=nx+mx*7, fy=ny+my*7;
+    const s1=[fx+(my!==0?-5:0),fy+(mx!==0?-5:0)];
+    const s2=[fx+(my!==0?5:0),fy+(mx!==0?5:0)];
+    if(!dugAt(Math.floor(s1[0]/F),Math.floor(s1[1]/F))||
+       !dugAt(Math.floor(s2[0]/F),Math.floor(s2[1]/F)))return;
+  }else{
+    // 岩は掘れない：衝突で停止
+    for(const k of rocks){
+      if(k.state==="break")continue;
+      if(Math.abs(nx-k.x)<14&&Math.abs(ny-k.y)<14)return;
+    }
+  }
+  if(nx===e.x&&ny===e.y)return;
+  e.x=nx;e.y=ny;e.moving=true;
+  if(e.dir==="left"||e.dir==="right")e.face=e.dir;
+  if(digs)carveAround(e.x,e.y);
+}
+
+// ---------- 敵AI ----------
+function enemySpeed(e){
+  let s=30+Math.min(G.round*4,26)+G.speedLv*7;   // R1:34 R2:38 … R6:54 R7+:56
+  if(e.state==="ghost")s*=0.45;
+  if(e.state==="flee")s*=0.7;
+  return Math.min(s,72);
+}
+function updateEnemy(e,dt){
+  if(e.state==="crushed")return;              // 凹み中は行動なし
+  e.animT+=dt;
+  if(e.inflate>0){                                   // 膨張中は停止・減衰
+    if(player.target!==e){
+      e.inflateT-=dt;
+      if(e.inflateT<=0){e.inflate--;e.inflateT=0.9;}
+    }
+    return;
+  }
+  if(e.state==="ghost"){
+    const d=Math.hypot(player.x-e.x,player.y-e.y)||1;
+    e.x+=(player.x-e.x)/d*enemySpeed(e)*dt;
+    e.y+=(player.y-e.y)/d*enemySpeed(e)*dt;
+    e.y=Math.max(TILE+8,Math.min(H-8,e.y));
+    e.ghostMin-=dt;
+    const c=Math.round((e.x-8)/TILE),r=Math.round((e.y-8)/TILE);
+    if(e.ghostMin<=0&&tileOpen(c,r)&&Math.abs(e.x-(c*TILE+8))<5&&Math.abs(e.y-(r*TILE+8))<5){
+      e.x=c*TILE+8;e.y=r*TILE+8;e.state="normal";e.dir=rnd()<0.5?"left":"right";
+    }
+    return;
+  }
+  if(e.state==="flee"){
+    const sp=enemySpeed(e);
+    const exitC=e.x<W/2?0:COLS-1, exitR=1;
+    // 地表に到達したら画面外へ走り去る
+    if(e.y<=TILE+8+1){
+      e.y=TILE+8;e.dir=e.x<W/2?"left":"right";e.face=e.dir;e.burrow=false;
+      e.x+=(e.dir==="left"?-1:1)*sp*dt;
+      if(e.x<-14||e.x>W+14){e.dead=true;roundClear();}
+      return;
+    }
+    const c=Math.round((e.x-8)/TILE), r=Math.round((e.y-8)/TILE);
+    const atC=Math.abs(e.x-(c*TILE+8))<1.5&&Math.abs(e.y-(r*TILE+8))<1.5;
+    if(!e.burrow&&atC){
+      // 出口に近づく開通タイル（穴）を優先（スナップはtryMoveのレーン吸着に任せる）
+      let best=null,bestScore=1e9;
+      for(const d in DIRS){
+        const [dx,dy]=DIRS[d]; const nc=c+dx,nr=r+dy;
+        if(nr<1)continue;
+        if(!tileOpen(nc,nr))continue;
+        const sc=Math.abs(nc-exitC)+Math.abs(nr-exitR);
+        if(sc<bestScore){bestScore=sc;best=d;}
+      }
+      const cur=Math.abs(c-exitC)+Math.abs(r-exitR);
+      if(best&&bestScore<cur)e.dir=best;                // 穴で前進
+      else e.burrow=true;                               // 行き止まり→土すり抜け開始
+    }
+    const burrowStep=()=>{                             // 土を無視して出口へ直進
+      const tx=exitC*TILE+8, ty=exitR*TILE+8;
+      const ddx=tx-e.x, ddy=ty-e.y, dist=Math.hypot(ddx,ddy)||1;
+      e.x+=ddx/dist*sp*dt; e.y+=ddy/dist*sp*dt;
+      e.y=Math.max(TILE+8,e.y);
+    };
+    if(e.burrow){
+      burrowStep();                                   // 一度始めたら地表まで上昇（目玉表示）
+    }else{
+      if(DIRS[e.dir][0]<0)e.face="left"; else if(DIRS[e.dir][0]>0)e.face="right";
+      const ox=e.x, oy=e.y;
+      tryMove(e,e.dir,sp,false,dt);
+      if(Math.abs(e.x-ox)<0.01&&Math.abs(e.y-oy)<0.01)e.burrow=true; // 塞がれた→次フレームすり抜け
+    }
+    return;
+  }
+  // 通常：目変化タイマー
+  e.ghostT-=dt;
+  if(e.ghostT<=0){
+    e.state="ghost";e.ghostMin=1.0;
+    e.ghostT=Math.max(3.5,9-G.round*0.6)+rnd()*4;
+    sfxGhost();
+    return;
+  }
+  // ガブラの火炎
+  if(e.type==="gabura"){
+    if(e.fire==="charge"){e.fireT-=dt;if(e.fireT<=0){e.fire="burn";e.fireT=0.45;sfxFire();}return;}
+    if(e.fire==="burn"){e.fireT-=dt;fireHitCheck(e);if(e.fireT<=0)e.fire="cool";return;}
+    if(e.fire==="cool"){e.fireT+=dt;if(e.fireT>2.2)e.fire="none";}
+    if(e.fire==="none"&&Math.abs(e.y-player.y)<10){
+      const dx=player.x-e.x;
+      if(Math.abs(dx)<5.5*TILE&&rnd()<Math.min(1.1,0.4+0.12*G.round)*dt){
+        e.fire="charge";e.fireT=0.7;e.fireDir=dx<0?"left":"right";e.dir=e.fireDir;return;
+      }
+    }
+  }
+  // 経路選択（タイル中心で判断）
+  const c=Math.round((e.x-8)/TILE),r=Math.round((e.y-8)/TILE);
+  const atC=Math.abs(e.x-(c*TILE+8))<1.5&&Math.abs(e.y-(r*TILE+8))<1.5;
+  if(atC){
+    const opts=[];
+    for(const d in DIRS){
+      const [dx,dy]=DIRS[d];
+      if(tileOpen(c+dx,r+dy))opts.push(d);
+    }
+    let pick=null;
+    const fwd=opts.filter(d=>d!==OPP[e.dir]);
+    const pool=fwd.length?fwd:opts;
+    if(pool.length){
+      if(rnd()<0.25)pick=pool[Math.floor(rnd()*pool.length)];
+      else{
+        let best=1e9;
+        for(const d of pool){
+          const [dx,dy]=DIRS[d];
+          const sc=Math.abs(player.x-(e.x+dx*TILE))+Math.abs(player.y-(e.y+dy*TILE));
+          if(sc<best){best=sc;pick=d;}
+        }
+      }
+    }
+    if(pick)e.dir=pick;else return;                  // 袋小路（目変化待ち）
+  }
+  tryMove(e,e.dir,enemySpeed(e),false,dt);
+}
+function fireGrow(e){return Math.min(1,(0.45-e.fireT)/0.10);}
+function fireRect(e){
+  const len=Math.max(5,Math.round(2*TILE*fireGrow(e)));
+  const x0=e.fireDir==="left"?e.x-8-len:e.x+8;
+  return {x:x0,y:e.y-6,w:len,h:12};
+}
+function fireHitCheck(e){
+  if(!player.alive)return;
+  const f=fireRect(e);
+  if(player.x>f.x-3&&player.x<f.x+f.w+3&&player.y>f.y-3&&player.y<f.y+f.h+3)killPlayer();
+}
+
+// ---------- ハープーン＆ポンプ ----------
+// 指定方向の同一レーン上、射程内にいる攻撃可能な敵を返す
+function enemyOnLane(dir,maxLen){
+  const [dx,dy]=DIRS[dir];
+  for(const e of enemies){
+    if(e.dead||e.state==="crushed"||e.state==="flee")continue;
+    if(dx!==0){
+      if(Math.abs(e.y-player.y)>10)continue;
+      const rel=(e.x-player.x)*dx;
+      if(rel>4&&rel<maxLen)return e;
+    }else{
+      if(Math.abs(e.x-player.x)>10)continue;
+      const rel=(e.y-player.y)*dy;
+      if(rel>4&&rel<maxLen)return e;
+    }
+  }
+  return null;
+}
+function updatePump(dt){
+  if(player.target){
+    const t=player.target;
+    if(input.dir){detach();return;}                  // 移動入力で解除
+    if(input.pumpEdge){pumpOnce(t);}
+    else if(input.pump){player.pumpT+=dt;if(player.pumpT>0.33){player.pumpT=0;pumpOnce(t);}}
+    return;
+  }
+  if(input.pumpEdge&&!harpoon){
+    // 後ろから敵が来ている時：前方に敵がおらず背後の射程内に敵がいれば振り向く
+    if(!input.dir){
+      const maxLen=5*TILE;
+      if(!enemyOnLane(player.dir,maxLen)){
+        const back=OPP[player.dir];
+        if(enemyOnLane(back,maxLen)){
+          player.dir=back;
+          if(DIRS[back][0]<0)player.face="left"; else if(DIRS[back][0]>0)player.face="right";
+        }
+      }
+    }
+    const [dx,dy]=DIRS[player.dir];
+    // ポンプ先端から発射：横向きは腕の高さ(＋2px下)に合わせる
+    const oy=(dy===0)?2:0;
+    harpoon={x:player.x+dx*8,y:player.y+dy*8+oy,dx,dy,len:0,dirt:0,retract:false};
+    sfxHarpoon();
+  }
+  if(harpoon){
+    if(harpoon.retract){                          // 止まった槍は引き戻す
+      harpoon.len-=420*dt;
+      if(harpoon.len<=0)harpoon=null;
+    }else{
+      const SP=420*dt;
+      for(let i=0;i<3;i++){
+        harpoon.len+=SP/3;
+        const tx=harpoon.x+harpoon.dx*harpoon.len, ty=harpoon.y+harpoon.dy*harpoon.len;
+        if(harpoon.len>5*TILE){harpoon.retract=true;break;}          // 射程延長（5タイル）
+        if(!dugAt(Math.floor(tx/F),Math.floor(ty/F))){
+          harpoon.dirt+=SP/3;                     // 土の中も少しだけ進める
+          if(harpoon.dirt>10){harpoon.retract=true;break;}             // 薄壁(8px)は貫通
+        }
+        let hit=null;
+        for(const e of enemies){
+          if(e.dead||e.state==="crushed")continue;   // 目変化中も刺さる
+          if(Math.abs(e.x-tx)<9&&Math.abs(e.y-ty)<9){hit=e;break;}
+        }
+        if(hit){player.target=hit;player.pumpT=0;pumpOnce(hit);break;}
+      }
+    }
+  }
+}
+function pumpOnce(t){
+  t.inflate=Math.min(4,t.inflate+1);
+  t.inflateT=1.0;
+  sfxPump();
+  if(t.inflate>=4)popEnemy(t);
+}
+function detach(){player.target=null;harpoon=null;}
+function popEnemy(t){
+  const r=Math.round((t.y-8)/TILE);
+  const layer=Math.max(0,Math.min(3,Math.floor((r-SKY)/4)));
+  let pts=200+layer*100;
+  if(t.type==="gabura"&&player.target===t&&Math.abs(player.y-t.y)<10)pts*=2; // 横パンクで倍
+  addScore(pts,t.x,t.y);
+  t.dead=true;detach();sfxPop();
+  burst(t.x,t.y,enemyCols(t));
+  checkLastEnemy();
+}
+
+// ---------- 岩 ----------
+function updateRocks(dt){
+  for(const k of rocks){
+    if(k.state==="idle"){
+      const fy=(k.r+1)*2;
+      if(dugAt(k.c*2,fy)&&dugAt(k.c*2+1,fy)){k.state="wobble";k.t=0.8;}
+    }else if(k.state==="wobble"){
+      k.t-=dt;
+      if(k.t<=0){
+        // プレイヤーが真下（落下経路上）にいる間は落ちない＝岩おびき寄せ
+        const underPath=player&&player.alive&&
+          Math.abs(player.x-k.x)<10&&player.y>k.y;
+        if(underPath){k.t=0.12;}                  // ぐらつき続けて待機
+        else{
+          k.state="fall";carveTile(k.c,k.r);k.fellFrom=k.y;G.rocksDropped++;sfxRockFall();
+          if(G.rocksDropped===2&&!veg)spawnVeg();
+        }
+      }
+    }else if(k.state==="fall"){
+      k.y+=170*dt;
+      // 巻き込み判定：凹ませて岩に張り付ける
+      for(const e of enemies){
+        if(e.dead||e.state==="ghost"||e.state==="crushed")continue;
+        if(Math.abs(e.x-k.x)<12&&Math.abs(e.y-k.y)<12){
+          e.state="crushed";e.crushedBy=k;e.inflate=0;e.fire="none";
+          if(player.target===e)detach();
+        }
+      }
+      // 凹んだ敵は岩の底に張り付いて一緒に落ちる
+      for(const e of enemies){
+        if(!e.dead&&e.state==="crushed"&&e.crushedBy===k){e.x=k.x;e.y=k.y+11;}
+      }
+      if(player.alive&&Math.abs(player.x-k.x)<11&&Math.abs(player.y-k.y)<11)killPlayer();
+      // 着地判定
+      const fy=Math.floor((k.y+8)/F);
+      if(k.y>=H-8||!dugAt(k.c*2,fy)||!dugAt(k.c*2+1,fy)){
+        k.y=Math.min(k.y,H-8);
+        k.state="break";k.t=0.5;sfxRockLand();
+        // 着地の衝撃で敵は撃破：得点＋花火はここで発生
+        for(const e of enemies){
+          if(!e.dead&&e.state==="crushed"&&e.crushedBy===k){
+            e.dead=true;addScore(1000,e.x,e.y);burst(e.x,e.y,enemyCols(e));
+          }
+        }
+        checkLastEnemy();
+      }
+    }else if(k.state==="break"){
+      k.t-=dt;
+    }
+  }
+  rocks=rocks.filter(k=>!(k.state==="break"&&k.t<=0));
+}
+const VEGS=[["かぶ",400],["にんじん",600],["きのこ",800],["なす",1000],["ピーマン",2000],["トマト",3000],["スイカ",4000],["パイン",5000]];
+function spawnVeg(){
+  const idx=Math.min(VEGS.length-1,G.round-1);
+  veg={x:START_C*TILE+8,y:START_R*TILE+8,t:10,idx};
+}
+
+// ---------- 進行 ----------
+function burst(x,y,cols,n,pow){              // 花火状パーティクル
+  n=n||22;pow=pow===undefined?1:pow;
+  for(let i=0;i<n;i++){
+    const a=(i/n)*Math.PI*2+rnd()*0.3;
+    const sp=(32+rnd()*58)*pow;
+    parts.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,
+      t:(0.55+rnd()*0.3)*Math.max(0.6,pow),col:cols[i%cols.length]});
+  }
+}
+function enemyCols(e){
+  return e.type==="fuwan"
+    ?["#F88820","#FFE0B0","#F8F8F8","#C25808"]     // フワン：オレンジ系
+    :["#28B898","#F88030","#98E8C8","#F8F8F8"];    // ガブラ：青緑＋橙
+}
+function sfxBurst(vol){if(!AC)return;const t=AC.currentTime;vol=vol||0.09;
+  for(let i=0;i<5;i++)tone(1800-i*260,0.06,"square",vol,t+i*0.035);}
+function addScore(p,x,y){
+  G.score+=p;
+  if(G.score>G.hi)G.hi=G.score;
+  if(!G.extended&&G.score>=20000){G.extended=true;G.lives++;jingleClear();}
+  if(x!==undefined)popups.push({x,y,t:1,txt:String(p)});
+}
+function alive(){return enemies.filter(e=>!e.dead);}
+function checkLastEnemy(){
+  const a=alive();
+  if(a.length===0){roundClear();return;}
+  if(a.length===1&&a[0].state!=="flee"&&a[0].state!=="crushed"){
+    a[0].state="flee";a[0].burrow=false;a[0].fire="none";
+    a[0].x=Math.round((a[0].x-8)/TILE)*TILE+8;a[0].y=Math.round((a[0].y-8)/TILE)*TILE+8;
+    jingleFlee();
+  }
+}
+function roundClear(){
+  if(G.mode!=="play")return;
+  G.mode="clear";G.timer=2.2;detach();jingleClear();
+}
+function killPlayer(){
+  if(!player.alive||G.mode!=="play")return;
+  player.alive=false;player.deadT=0;detach();
+  G.mode="death";G.timer=1.9;jingleDeath();
+}
+function startGame(){
+  G.round=1;G.score=0;G.lives=3;G.extended=false;
+  titleEl.classList.add("hidden");
+  newRound();
+  G.mode="inter";G.timer=1.8;   // 黒画面カード → 入場演出へ
+}
+function gameOver(){
+  G.mode="over";G.timer=3;
+}
+
+// ---------- 更新 ----------
+function update(dt){
+  input.pumpEdgeUsed=false;
+  if(G.mode==="ready"){
+    G.timer-=dt;if(G.timer<=0)G.mode="play";
+  }
+  else if(G.mode==="inter"){                  // 黒画面カード
+    G.timer-=dt;if(G.timer<=0)G.mode="entry";
+  }
+  else if(G.mode==="entry"){                  // 地表から自動掘り降り
+    tryMove(player,"down",64,true,dt);
+    player.animT+=dt;
+    stepMusic(dt,true);                       // 掘っている間は歩行音（原作仕様）
+    if(player.y>=START_R*TILE+8-0.5){
+      player.y=START_R*TILE+8;player.dir="right";player.face="right";
+      G.mode="play";
+    }
+  }
+  else if(G.mode==="play"){
+    G.roundTime+=dt;
+    if(G.speedLv===0&&G.roundTime>Math.max(24,42-G.round*2)){G.speedLv=1;sfxSpeedUp();}
+    if(G.speedLv===1&&G.roundTime>Math.max(48,84-G.round*4)){G.speedLv=2;sfxSpeedUp();}
+    // プレイヤー（モリ発射中・ポンプ接続中は停止＝原作仕様）
+    if(!player.target&&!harpoon)tryMove(player,input.dir,54,true,dt);
+    // 地上では左右を向く（垂直移動中を除く）
+    if(player.y<=TILE+8.5&&(player.dir==="up"||player.dir==="down")&&!player.moving)
+      player.dir=player.face;
+    if(player.moving)player.animT+=dt;
+    stepMusic(dt,player.moving&&!player.target);
+    updatePump(dt);
+    // 敵
+    for(const e of enemies){if(!e.dead)updateEnemy(e,dt);}
+    // 接触判定
+    for(const e of alive()){
+      if(e.state==="ghost"||e.state==="crushed"||e.inflate>0)continue;
+      if(Math.hypot(e.x-player.x,e.y-player.y)<8){killPlayer();break;}
+    }
+    updateRocks(dt);
+    // 野菜
+    if(veg){
+      veg.t-=dt;
+      if(veg.t<=0)veg=null;
+      else if(Math.hypot(veg.x-player.x,veg.y-player.y)<12){
+        addScore(VEGS[veg.idx][1],veg.x,veg.y);veg=null;sfxVeg();
+      }
+    }
+  }
+  else if(G.mode==="death"){
+    player.deadT+=dt;G.timer-=dt;
+    if(!player.burst&&player.deadT>=1.4){
+      player.burst=true;
+      burst(player.x,player.y,["#F8F8F8","#FFC53D","#F87818","#2050E8"],10,0.5);
+      sfxBurst(0.05);
+    }
+    if(G.timer<=0){
+      G.lives--;
+      if(G.lives<0){gameOver();}
+      else{
+        // 地形は維持・敵は巣へ戻す
+        for(const e of enemies){if(!e.dead){e.x=e.spawnX;e.y=e.spawnY;e.state="normal";e.crushedBy=null;e.inflate=0;e.fire="none";e.ghostT=4+rnd()*6;e.fleePhase=0;}}
+        checkFleeReset();
+        spawnPlayer();
+        G.mode="ready";G.timer=1.5;
+      }
+    }
+  }
+  else if(G.mode==="clear"){
+    G.timer-=dt;
+    if(G.timer<=0){G.round++;newRound();G.mode="inter";G.timer=1.8;}
+  }
+  else if(G.mode==="over"){
+    G.timer-=dt;
+    if(G.timer<=0){
+      G.mode="title";
+    }
+  }
+  // ポップアップ
+  for(const p of popups){p.t-=dt;p.y-=14*dt;}
+  popups=popups.filter(p=>p.t>0);
+  // パーティクル（軽い重力つき）
+  for(const p of parts){p.t-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=42*dt;}
+  parts=parts.filter(p=>p.t>0);
+  input.pumpEdge=false;
+}
+function checkFleeReset(){
+  const a=alive();
+  if(a.length===1){a[0].state="flee";a[0].burrow=false;
+    a[0].x=Math.round((a[0].x-8)/TILE)*TILE+8;a[0].y=Math.round((a[0].y-8)/TILE)*TILE+8;}
+}
+
+// ---------- 描画（ピクセルパーフェクト）----------
+function px(n){return Math.round(n);}
+
+// --- ビットマップフォント 3x5 ---
+const FONT={
+"0":"111101101101111","1":"010110010010111","2":"111001111100111","3":"111001111001111",
+"4":"101101111001001","5":"111100111001111","6":"111100111101111","7":"111001001010010",
+"8":"111101111101111","9":"111101111001111",
+"A":"010101111101101","B":"110101110101110","C":"011100100100011","D":"110101101101110",
+"E":"111100111100111","F":"111100111100100","G":"011100101101011","H":"101101111101101",
+"I":"111010010010111","J":"001001001101010","K":"101101110101101","L":"100100100100111",
+"M":"101111111101101","N":"111101101101101","O":"111101101101111","P":"111101111100100",
+"Q":"111101101111001","R":"111101111110101","S":"111100111001111","T":"111010010010010",
+"U":"101101101101111","V":"101101101101010","W":"101101111111101","X":"101101010101101",
+"Y":"101101010010010","Z":"111001010100111",
+"!":"010010010000010",".":"000000000000010","-":"000000111000000"," ":"000000000000000",
+};
+function text(str,x,y,color,sc){
+  sc=sc||1;ctx.fillStyle=color;
+  str=String(str).toUpperCase();
+  for(let i=0;i<str.length;i++){
+    const g=FONT[str[i]];if(!g)continue;
+    const ox=x+i*4*sc;
+    for(let r=0;r<5;r++)for(let c=0;c<3;c++)
+      if(g[r*3+c]==="1")ctx.fillRect(ox+c*sc,y+r*sc,sc,sc);
+  }
+}
+function textW(str,sc){return String(str).length*4*(sc||1)-(sc||1);}
+
+// --- ドット絵スプライト（オリジナルキャラ。文字→色のマップ）---
+function makeSprite(rows,pal){
+  const h=rows.length,w=rows[0].length;
+  const c=document.createElement("canvas");c.width=w;c.height=h;
+  const g=c.getContext("2d");
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){
+    const ch=rows[y][x];
+    if(ch==="."||!pal[ch])continue;
+    g.fillStyle=pal[ch];g.fillRect(x,y,1,1);
+  }
+  return c;
+}
+// 主人公ディギー（2頭身ちびキャラ・白ヘルメット, 12px幅・全アングル再設計）
+const P_PAL={H:"#FFFFFF",V:"#2E78E0",L:"#BFD9FF",W:"#F4F6FF",S:"#CDD2E2",K:"#141420",O:"#F87818",C:"#FFC0A0",G:"#A8AEC4",P:"#FF9DB0",M:"#9AA0B4",D:"#5A6072"};
+// --- 下向き（正面）: 左右対称・2つ目・ほほ ---
+const SPR_PD1=makeSprite([
+"...HHHHHH...",
+"..HHHHHHHH..",
+".HHHHHHHHHH.",
+".HHVVVVVVHH.",
+".HVLKWWKLVH.",
+".HVWKWWKWVH.",
+".HPVKWWKVPH.",
+"..HWWKKWWH..",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+"..KKK..KKK..",
+"..OOO..OOO..",
+],P_PAL);
+const SPR_PD2=makeSprite([
+"...HHHHHH...",
+"..HHHHHHHH..",
+".HHHHHHHHHH.",
+".HHVVVVVVHH.",
+".HVLKWWKLVH.",
+".HVWKWWKWVH.",
+".HPVKWWKVPH.",
+"..HWWKKWWH..",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+"....KKKK....",
+"..OOO..OOO..",
+],P_PAL);
+// --- 上向き（背面）: 左右対称・顔なし・頭上ノズル ---
+const SPR_PU1=makeSprite([
+".....OO.....",
+"...HHHHHH...",
+"..HHHHHHHH..",
+".HHHHHHHHHH.",
+".HHHHHHHHHH.",
+".HHGGGGGGHH.",
+"..HWWWWWWH..",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+"..KKK..KKK..",
+"..OOO..OOO..",
+],P_PAL);
+const SPR_PU2=makeSprite([
+".....OO.....",
+"...HHHHHH...",
+"..HHHHHHHH..",
+".HHHHHHHHHH.",
+".HHHHHHHHHH.",
+".HHGGGGGGHH.",
+"..HWWWWWWH..",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+"....KKKK....",
+"..OOO..OOO..",
+],P_PAL);
+// --- 右向き（横）: 直立・歩行2フレーム・ポンプ保持・目にきらめき＋ほほ ---
+const SPR_P1=makeSprite([
+"...HHHHHH...",
+"..HHHHHHHH..",
+"..HVVVVVVVH.",
+"..HVWLKKVVH.",   // 白目+きらめき(L)+黒目
+"..HVWWKKVPH.",   // ほほ(P)
+"..HVVVVVVVH.",
+"..WWWWWWWW..",
+"..WWWWWWMDO.",
+"..WWWWWWMD..",
+"..WWWWWWWW..",
+".KK...KKKK..",
+".OO....OOO..",
+],P_PAL);
+const SPR_P2=makeSprite([
+"............",
+"...HHHHHH...",
+"..HHHHHHHH..",
+"..HVVVVVVVH.",
+"..HVWLKKVVH.",
+"..HVWWKKVPH.",
+"..HVVVVVVVH.",
+"..WWWWWWWW..",
+"..WWWWWWMD..",
+"..WWWWWWMDO.",
+".KKKK...KK..",
+".OOO....OO..",
+],P_PAL);
+// --- やられ: ><目・手足を広げる ---
+const SPR_PKO=makeSprite([
+"...HHHHHH...",
+"..HHHHHHHH..",
+".HHHHHHHHHH.",
+".HHVVVVVVHH.",
+".HVKVWWVKVH.",
+".HVKVWWVKVH.",
+".HHVVVVVVHH.",
+"WW.WWWWWW.WW",
+"..WWWWWWWW..",
+"..WWWWWWWW..",
+".KK......KK.",
+".OO......OO.",
+],P_PAL);
+// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣・大きな瞳＋ほっぺ・2フレーム）
+const F_PAL={P:"#F88820",D:"#C25808",A:"#FFE0B0",W:"#F8F8F8",K:"#181828",C:"#FF9E9E"};
+const SPR_F1=makeSprite([
+".....AA.......",
+"......A.......",
+"....PPPPPP....",
+"..PPPPPPPPPP..",
+".PPPPPPPPPPPP.",
+".PWWWWPPWWWWP.",
+".PWWKKPPWWKKP.",
+"PPWWWWPPWWWWPP",
+"PCCPPPPPPPPCCP",
+"PPPPKPPPPKPPPP",
+"PPPPPKKKKPPPPP",
+".PDDPPPPPPDDP.",
+"..DD......DD..",
+".DDD......DDD.",
+],F_PAL);
+const SPR_F2=makeSprite([
+"......AA......",
+"......A.......",
+"....PPPPPP....",
+"..PPPPPPPPPP..",
+".PPPPPPPPPPPP.",
+".PWWWWPPWWWWP.",
+".PWWKKPPWWKKP.",
+"PPWWWWPPWWWWPP",
+"PCCPPPPPPPPCCP",
+"PPPPKPPPPKPPPP",
+"PPPPPKKKKPPPPP",
+".PDDPPPPPPDDP.",
+"...DD....DD...",
+"...DD....DD...",
+],F_PAL);
+// ガブラ（火吹きトカゲ・丸い背びれ＋大きな瞳＋にっこり・右向き）
+function gaburaRows(){return [
+"...O....O.......",
+"..OOO..OOO......",
+".TTTTTTTTTTT....",
+"TTTTTTTTTTTTT...",
+"TTTTTTTTTEEEET..",
+"TTTTTTTTTWWKWT..",
+"TTYYYYYTTTTTTT..",
+"TTYYYYYTMWMWMWT.",
+"ETTTTTTTTMMMMT..",
+"EETTTTTTTTTTT...",
+".EE..EE..EE.EE..",
+".MM..MM..MM.MM..",
+];}
+const G_PAL ={T:"#28B898",E:"#188068",Y:"#98E8C8",O:"#F88030",W:"#F8F8F8",K:"#E03028",M:"#301820"};
+const G_PALF={T:"#E8FFF8",E:"#98D8C8",Y:"#FFFFFF",O:"#FFF8B0",W:"#F8F8F8",K:"#E03028",M:"#684858"};
+const SPR_G1=makeSprite(gaburaRows(),G_PAL);
+const SPR_GF=makeSprite(gaburaRows(),G_PALF);
+// 岩
+const SPR_ROCK=makeSprite([
+"....GGGGGG....",
+"..GGHHHGGGGG..",
+".GHHHGGGGGGGG.",
+".GHHGGGGGGGGG.",
+"GGHGGGGGGKGGGG",
+"GGGGGGGGKKKGGG",
+"GGGGGKGGGKGGGG",
+"GGGGKKKGGGGGGG",
+".GGGGKGGGGGGD.",
+".DGGGGGGGGDDD.",
+"..DDGGGGGDDD..",
+"....DDDDDD....",
+],{G:"#8A8A96",H:"#C0C0CC",K:"#4A4A54",D:"#55555E"});
+// 野菜（ラウンドごとに循環）
+const SPR_VEG=[
+makeSprite([ // かぶ
+"...G..G...","...G..G...","..GGGGGG..",".WWWWWWWW.","WWWWWWWWWW",
+"WWWWWWWWWW",".WWWWWWWW.","..WWWWWW..","...PPPP...","....PP....",
+],{G:"#3AA34A",W:"#F4F6FF",P:"#C77DD9"}),
+makeSprite([ // にんじん
+"..G.G.G...","...GGG....","..OOOOOO..",".OOOOOOOO.",".OOOOOOOO.",
+"..OOOOOO..","..OOOOOO..","...OOOO...","....OO....","....O.....",
+],{G:"#3AA34A",O:"#F87818"}),
+makeSprite([ // きのこ
+"..RRRRRR..",".RRWWRRRR.","RRRWWRRWWR","RRRRRRRWWR","RRRRRRRRRR",
+"...CCCC...","...CCCC...","...CCCC...","..CCCCCC..","..........",
+],{R:"#E5484D",W:"#FFF",C:"#F4E9D8"}),
+makeSprite([ // なす
+"....GG....","...GGGG...","...VVVV...","..VVVVVV..",".VVVVVVVV.",
+".VVVVVVVV.",".VVVVVVVV.","..VVVVVV..","...VVVV...","..........",
+],{G:"#3AA34A",V:"#6B3FA0"}),
+];
+// 花（クリア数表示）
+const SPR_FLOWER_W=makeSprite(["..W..",".WWW.","W.Y.W",".WWW.","..G..","..G.."],{W:"#FFF2F5",Y:"#FFD24D",G:"#3AA34A"});
+const SPR_FLOWER_R=makeSprite(["..R..",".RRR.","R.Y.R",".RRR.","..G..","..G.."],{R:"#FF5A6E",Y:"#FFD24D",G:"#3AA34A"});
+// 残機アイコン
+const SPR_LIFE=makeSprite(["BBBBBB","BBBBBB","WWWWWW","WWWWWW","O....O"],{B:"#2050E8",W:"#F8F8F8",O:"#F87818"});
+
+function drawSpr(img,x,y,flip,scale){
+  scale=scale||1;
+  const w=img.width*scale,h=img.height*scale;
+  ctx.save();
+  ctx.translate(px(x),px(y));
+  if(flip)ctx.scale(-1,1);
+  ctx.drawImage(img,px(-w/2),px(-h/2),px(w),px(h));
+  ctx.restore();
+}
+
+function fillExtra(){
+  if(EXTRA<=0)return;
+  if(G.mode==="title"||G.mode==="inter"){
+    ctx.fillStyle="#000";ctx.fillRect(0,H,W,EXTRA);return;
+  }
+  ctx.fillStyle="#4A1F10";ctx.fillRect(0,H,W,EXTRA);   // 最深層より暗い岩盤
+  ctx.fillStyle="#3A170B";
+  for(let y=0;y<EXTRA;y+=4)
+    for(let x=((y/4)%2)*4;x<W;x+=8)ctx.fillRect(x,H+y,3,1);
+}
+function render(){
+  ctx.imageSmoothingEnabled=false;
+  fillExtra();
+  if(G.mode==="title"){drawTitle();return;}
+  if(G.mode==="inter"){
+    ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+    drawHUD();
+    ctext("PLAYER 1",H/2-22,"#7EC8E3",2);
+    ctext("ROUND "+G.round,H/2+6,"#FFC53D",2);
+    return;
+  }
+  // 空（青空）
+  ctx.fillStyle="#2040C8";ctx.fillRect(0,0,W,SKY*TILE);
+  // 地層＋トンネル
+  ctx.drawImage(dirtCv,0,0);
+  ctx.drawImage(tunCv,0,0);
+  // 地表の草
+  ctx.fillStyle="#2E8B3A";ctx.fillRect(0,SKY*TILE-3,W,3);
+  ctx.fillStyle="#48B857";
+  for(let i=0;i<COLS*2;i++)ctx.fillRect(i*8+2,SKY*TILE-5,2,2);
+  drawFlowers();
+  if(veg)drawVeg(veg);
+  for(const k of rocks)drawRock(k);
+  for(const e of enemies)if(!e.dead)drawEnemy(e);
+  drawHarpoon();
+  if(player)drawPlayer();
+  for(const p of parts){
+    if(p.t<0.2&&Math.floor(p.t*30)%2)continue;
+    ctx.fillStyle=p.col;
+    ctx.fillRect(px(p.x)-1,px(p.y)-1,2,2);
+  }
+  for(const p of popups){
+    const tw=textW(p.txt,2);
+    const tx=Math.max(1,Math.min(W-tw-1,px(p.x)-tw/2));
+    text(p.txt,tx,px(p.y)-8,"#FFE96B",2);
+  }
+  drawHUD();
+  drawBanners();
+}
+function ctext(str,y,col,sc){text(str,Math.round(W/2-textW(str,sc)/2),y,col,sc);}
+function drawTitle(){
+  ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+  // ロゴ（影付き2度打ち）
+  const lg="DIGDIG",sc=5;
+  const lx=Math.round(W/2-textW(lg,sc)/2);
+  text(lg,lx+2,40+2,"#A03800",sc);
+  text(lg,lx,40,"#FFC53D",sc);
+  ctext("80GAME",74,"#7EC8E3",1);
+  ctext("HI SCORE "+String(G.hi).padStart(7,"0"),90,"#FFE66D",2);
+  // キャラクター得点表
+  ctext("- MONSTER SCORE -",112,"#F8F8F8",1);
+  const rows=[
+    [SPR_F1,  "FUWAN",  "200-500 PTS"],
+    [SPR_G1,  "GABURA", "SIDE POP X2"],
+    [SPR_ROCK,"ROCK",   "1000 PTS"],
+    [SPR_VEG[0],"BONUS","VEGETABLE"],
+  ];
+  for(let i=0;i<rows.length;i++){
+    const y=126+i*22;
+    const img=rows[i][0];
+    ctx.drawImage(img,40-Math.round(img.width/2),y-Math.round(img.height/2)+3);
+    text(rows[i][1],58,y,"#F8B838",1);
+    text(rows[i][2],120,y,"#F8F8F8",1);
+  }
+  // 操作ガイド（現在の入力割り当てと一致）
+  ctext("ARROWS:MOVE   A:DIG   B:PUMP",206,"#F8F8F8",1);
+  // スタート誘導（緑・点滅・PUSH BUTTON で統一）
+  if((Math.floor(tGlobal*60)>>4)%2===0)ctext("PUSH BUTTON",228,"#00FF88",2);
+  // クレジット（ブラス・常時表示・非点滅・最下部）
+  ctext("© 2026 80GAME   ALL RIGHTS RESERVED",H-8,"#C7913E",1);
+}
+function drawFlowers(){
+  const n=Math.min(G.round,8);
+  for(let i=0;i<n;i++){
+    const img=((i+1)%5===0)?SPR_FLOWER_R:SPR_FLOWER_W;
+    ctx.drawImage(img,W-13-i*11,SKY*TILE-13,img.width*2,img.height*2);
+  }
+}
+function drawPlayer(){
+  const x=player.x,y=player.y;
+  if(!player.alive){
+    const t=player.deadT;
+    const sc=1+Math.min(1,t/0.6)*0.6;          // 1.0 → 1.6倍へ拡大
+    const al=Math.max(0,1-t/1.4);              // 徐々にフェードアウト
+    if(al<=0)return;
+    ctx.save();
+    ctx.translate(px(x),px(y));
+    ctx.rotate(t*7);                            // くるくる回転
+    ctx.globalAlpha=al;
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(SPR_PKO,
+      px(-SPR_PKO.width*sc/2),px(-SPR_PKO.height*sc/2),
+      px(SPR_PKO.width*sc),px(SPR_PKO.height*sc));
+    ctx.restore();
+    ctx.globalAlpha=1;
+    return;
+  }
+  const f=Math.floor(player.animT*10)%2;
+  let img,flip=false;
+  if(player.dir==="up")      img=f?SPR_PU2:SPR_PU1;
+  else if(player.dir==="down")img=f?SPR_PD2:SPR_PD1;
+  else{img=f?SPR_P2:SPR_P1;flip=player.face==="left";}
+  drawSpr(img,x,y-(player.moving&&f?1:0),flip,1);
+}
+function drawEnemy(e){
+  const x=e.x,y=e.y;
+  if(e.state==="crushed"){                          // 岩に潰されてぺちゃんこ
+    const img=e.type==="fuwan"?SPR_F1:SPR_G1;
+    ctx.save();
+    ctx.translate(px(e.x),px(e.y));
+    if(e.face==="left")ctx.scale(-1,1);
+    ctx.scale(1.35,0.4);
+    ctx.imageSmoothingEnabled=false;
+    ctx.drawImage(img,Math.round(-img.width/2),Math.round(-img.height/2));
+    ctx.restore();
+    return;
+  }
+  if((e.state==="ghost"&&e.inflate===0)||(e.state==="flee"&&e.burrow)){ // 土中：目玉だけ
+    ctx.fillStyle="#F8F8F8";
+    ctx.fillRect(px(x)-6,px(y)-3,4,5);ctx.fillRect(px(x)+2,px(y)-3,4,5);
+    ctx.fillStyle="#20B2AA";
+    const go=(e.face==="left")?-1:1;
+    ctx.fillRect(px(x)-5+go,px(y)-1,2,2);ctx.fillRect(px(x)+3+go,px(y)-1,2,2);
+    return;
+  }
+  const s=1+e.inflate*0.45;   // 1段階ごとに+45%（3段階で約2.4倍）
+  const f2=Math.floor(e.animT*8)%2;
+  let img;
+  if(e.type==="fuwan")img=f2?SPR_F2:SPR_F1;
+  else img=(e.fire==="charge"&&Math.floor(e.fireT*14)%2===0)?SPR_GF:SPR_G1;
+  drawSpr(img,x,y-(e.inflate===0&&f2?1:0),e.face==="left",s);
+  if(e.type==="gabura"&&e.fire==="burn")drawFire(e);
+}
+function drawFire(e){
+  const dirL=e.fireDir==="left";
+  const base=dirL?e.x-8:e.x+8;
+  const g=fireGrow(e);
+  const full=2*TILE, len=Math.max(4,Math.round(full*g));
+  const t=e.fireT*26;
+  const seg=4;
+  const fr=(c,x,y,w,h)=>{ctx.fillStyle=c;ctx.fillRect(px(x),px(y),w,h);};
+  for(let i=0;i*seg<len;i++){
+    const x=dirL?base-(i+1)*seg:base+i*seg;
+    if(x<-seg||x>W)continue;                       // 画面外で切れないようスキップ
+    const p=(i*seg)/full;                          // 0=根元 → 1=先端
+    const wob=Math.round(Math.sin(i*1.9+t)*(1+p*1.6));  // 先端ほど大きくゆらぐ
+    const cy=e.y+wob;
+    const h=Math.max(3,12-Math.round(p*p*11));     // 太→細のテーパー
+    fr("#E5484D",x,cy-h/2,seg,h);                  // 外炎（赤）
+    if(h>5) fr("#F87818",x,cy-(h-4)/2,seg,h-4);    // 中炎（橙）
+    if(h>8) fr("#FFC53D",x,cy-(h-7)/2,seg,h-7);    // 内炎（黄）
+    if(p<0.45&&h>9)fr("#FFF3B0",x,cy-1,seg,2);     // 芯（根元のみ）
+  }
+  // 先端：分かれてちらつく炎の舌
+  if(g>=0.6){
+    const tip=dirL?base-len:base+len;
+    const fl=Math.floor(t)%3;
+    const dx=dirL?-1:0;
+    fr("#E5484D",tip+dx*3,e.y-4-fl,3,2);
+    fr("#F87818",tip+dx*3,e.y-1,3,2);
+    fr("#E5484D",tip+dx*2,e.y+3+fl,2,2);
+    fr("#FFC53D",tip+dx*2,e.y+1-fl,2,1);
+  }
+}
+function drawWave(x0,y0,x1,y1,amp,speed){            // 波打つワイヤー（2pxドット連鎖）
+  const dx=x1-x0,dy=y1-y0;
+  const len=Math.hypot(dx,dy)||1;
+  const ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
+  ctx.fillStyle="#F0F2FA";
+  for(let d=0;d<len;d+=2){
+    const k=d/len;                                 // 根元0 → 先端1
+    const off=Math.sin(d*0.55-tGlobal*speed)*amp*k;
+    ctx.fillRect(px(x0+ux*d+nx*off)-1,px(y0+uy*d+ny*off)-1,2,2);
+  }
+}
+function drawHarpoon(){
+  if(player&&player.target){                       // 接続中のホースはゆったり波打つ
+    drawWave(player.x,player.y,player.target.x,player.target.y,0.9,7);
+    return;
+  }
+  if(!harpoon||harpoon.len<=0)return;
+  const tx=harpoon.x+harpoon.dx*harpoon.len, ty=harpoon.y+harpoon.dy*harpoon.len;
+  drawWave(harpoon.x,harpoon.y,tx,ty,0.8,22);      // 飛行中は速く細かくうねる
+  drawSpearTip(px(tx),px(ty),harpoon.dx,harpoon.dy);
+}
+// 赤い三角の穂先（進行方向を指す・ドット描画）
+function drawSpearTip(x,y,dx,dy){
+  ctx.fillStyle="#E5262B";
+  if(dx>0){       // 右向き ▶
+    ctx.fillRect(x-2,y-3,2,6);ctx.fillRect(x,y-2,2,4);ctx.fillRect(x+2,y-1,2,2);
+  }else if(dx<0){ // 左向き ◀
+    ctx.fillRect(x,y-3,2,6);ctx.fillRect(x-2,y-2,2,4);ctx.fillRect(x-4,y-1,2,2);
+  }else if(dy>0){ // 下向き ▼
+    ctx.fillRect(x-3,y-2,6,2);ctx.fillRect(x-2,y,4,2);ctx.fillRect(x-1,y+2,2,2);
+  }else{          // 上向き ▲
+    ctx.fillRect(x-3,y,6,2);ctx.fillRect(x-2,y-2,4,2);ctx.fillRect(x-1,y-4,2,2);
+  }
+  ctx.fillStyle="#FF7A7E";  // ハイライト1ドット
+  ctx.fillRect(x-1+(dx>0?1:dx<0?-1:0),y-1+(dy>0?1:dy<0?-1:0),1,1);
+}
+function drawRock(k){
+  const ox=(k.state==="wobble")?(Math.floor(k.t*16)%2?1:-1):0;
+  const x=k.x+ox,y=k.y;
+  if(k.state==="break"){
+    ctx.fillStyle="#8A8A96";
+    const t=1-k.t/0.5;
+    ctx.fillRect(px(x-7-t*4),px(y+2),5,4);ctx.fillRect(px(x+2+t*4),px(y+2),5,4);
+    ctx.fillRect(px(x-3),px(y-2-t*3),6,4);
+    return;
+  }
+  drawSpr(SPR_ROCK,x,y,false,1);
+}
+function drawVeg(v){
+  if(v.t<3&&Math.floor(v.t*8)%2===0)return;
+  drawSpr(SPR_VEG[v.idx%SPR_VEG.length],v.x,v.y,false,1);
+}
+function drawHUD(){
+  text("1UP",2,2,"#FF5A6E",2);
+  text(String(G.score).padStart(6,"0"),28,2,"#F8F8F8",2);
+  text("HI",W-64,2,"#FFC53D",2);
+  text(String(G.hi).padStart(6,"0"),W-48,2,"#F8F8F8",2);
+  for(let i=0;i<Math.max(0,G.lives);i++)
+    drawSpr(SPR_P1,9+i*14,21,true,1);   // 左向きディギー
+}
+function drawBanners(){
+  if(G.mode==="entry"){
+    ctext("PLAYER 1",H/2-20,"#7EC8E3",2);
+    ctext("READY",H/2+6,"#F8F8F8",2);
+  }else if(G.mode==="ready"){
+    banner("READY!",H/2-8,"#F8F8F8");
+  }else if(G.mode==="clear"){
+    banner("ROUND CLEAR!",H/2-12,"#7CFF9E");
+  }else if(G.mode==="over"){
+    banner("GAME OVER",H/2-40,"#FF3333");
+    ctext("SCORE",H/2-2,"#FFFFFF",2);
+    ctext(String(G.score).padStart(7,"0"),H/2+16,"#FFFFFF",2);
+    ctext("HI SCORE",H/2+42,"#FFE66D",2);
+    ctext(String(G.hi).padStart(7,"0"),H/2+60,"#FFE66D",2);
+    if((Math.floor(tGlobal*60)>>4)%2===0)ctext("PUSH BUTTON",H/2+88,"#00FF88",2);
+  }
+  function banner(txt,y,col){
+    const w=textW(txt,3);
+    ctx.fillStyle="#000";ctx.fillRect(W/2-w/2-8,y-5,w+16,25);
+    text(txt,W/2-w/2,y,col,3);
+  }
+}
+
+// ---------- キャンバスのフィット ----------
+let EXTRA=0;                                          // フィールド下の岩盤帯（論理px）
+function fit(){
+  const area=document.getElementById("screenArea");
+  const availW=area.clientWidth, availH=area.clientHeight;
+  const dpr=window.devicePixelRatio||1;
+  const scaleW=availW/W, scaleH=availH/H;
+  if(scaleH<=scaleW){
+    // 高さ制限：従来通り（余白なし・EXTRAなし）
+    EXTRA=0;
+    const k=Math.max(1,Math.round(scaleH*dpr));
+    cv.width=W*k;cv.height=H*k;
+    cv.style.width=Math.floor(W*scaleH)+"px";
+    cv.style.height=Math.floor(H*scaleH)+"px";
+    ctx.setTransform(k,0,0,k,0,0);
+  }else{
+    // 幅いっぱい＋下端はコントローラーまで岩盤で延長
+    const k=Math.max(1,Math.round(scaleW*dpr));
+    const H2=Math.ceil(availH/scaleW);
+    EXTRA=H2-H;
+    cv.width=W*k;cv.height=H2*k;
+    cv.style.width=Math.floor(availW)+"px";
+    cv.style.height=Math.floor(availH)+"px";
+    ctx.setTransform(k,0,0,k,0,0);
+  }
+  ctx.imageSmoothingEnabled=false;
+}
+window.addEventListener("resize",fit);
+
+// ---------- メインループ ----------
+let last=0,tGlobal=0;
+function loop(ts){
+  const dt=Math.min(0.05,(ts-last)/1000||0.016);
+  last=ts;tGlobal+=dt;
+  if(G.mode!=="title")update(dt);
+  musicUpdate(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+fit();
+newRound();
+titleEl.classList.add("hidden");   // タイトルはキャンバス側で描画
+G.mode="title";
+requestAnimationFrame(loop);
+
+// テスト用フック
+window.__G={G,input,update,startGame,newRound,
+  __harpoonAlive(){return !!harpoon;},
+  resolveDir,
+  get player(){return player},get enemies(){return enemies},
+  get rocks(){return rocks},get veg(){return veg},
+  set veg(v){veg=v},
+  dugAt,carveTile,tileOpen,killPlayer,checkLastEnemy};
+})();
+
+// PWA: Service Worker登録（https配信時のみ動作。file://やローカル単体起動では静かにスキップ）
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
