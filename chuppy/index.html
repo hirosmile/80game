@@ -4,20 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CHUPPY</title>
-<meta name="theme-color" content="#8f0f13">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="CHUPPY">
 <style>
   html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;touch-action:none;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:monospace}
   #wrap{display:flex;flex-direction:column;height:100dvh}
   #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0}
-  #cv{image-rendering:pixelated;background:#000;display:block}
+  #cv{image-rendering:pixelated;background:#000;display:block;touch-action:none}
   /* ---- controller deck ---- */
   #deck{flex:0 0 auto;background:#8f0f13;border-top:4px solid #5c0a0d;
     display:flex;align-items:center;justify-content:space-between;
@@ -162,6 +154,19 @@ window.addEventListener('keyup',e=>{
   if(e.key==='x'||e.key==='X')inp.bHeld=false;
 });
 document.addEventListener('contextmenu',e=>e.preventDefault());
+// タップでの拡大を抑止(iOS Safari対策)
+// ピンチズーム(2本指ジェスチャ)を無効化
+['gesturestart','gesturechange','gestureend'].forEach(ev=>
+  document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
+// ダブルタップズームを無効化(300ms以内の連続タップを抑止)
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{
+  const now=Date.now();
+  if(now-lastTouchEnd<=300) e.preventDefault();
+  lastTouchEnd=now;
+},{passive:false});
+// 2本指以上のタッチ(ピンチ)も無効化
+document.addEventListener('touchmove',e=>{ if(e.touches.length>1)e.preventDefault(); },{passive:false});
 
 // ---------- audio ----------
 let AC=null, musicStep=0, musicTimer=null;
@@ -1438,13 +1443,6 @@ newRound();
 resize();
 setTimeout(resize,100);
 requestAnimationFrame(tick);
-
-// PWA: Service Worker登録（https配信時のみ動作。file://やローカル単体起動では静かにスキップ）
-if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
 </script>
 </body>
 </html>
