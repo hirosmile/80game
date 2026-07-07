@@ -227,6 +227,7 @@ let player, cats, doors, items, tramps, waves, pops;
 let balloons=[], bonusT=0;
 let stTimer=0, lastItemType=-1, combo=0;
 const ROUND_TIME=3000, HURRY_AT=600, HURRY_SCROLL=90;   // ~50秒 / 残り10秒でハリーアップ / 1回のスクロール長
+const VERSION='1.0';
 let roundT=ROUND_TIME, roundHurry=false, hurryFired=false, hurryT=0;
 
 function makeTramps(){
@@ -1397,7 +1398,7 @@ function drawTitle(){
   ctx.fillText('ARROWS:MOVE   A:DOOR   B:DASH',W/2,326);
   if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.fillText('PUSH BUTTON',W/2,342); }
   ctx.fillStyle='#c7913e'; ctx.font='7px monospace';
-  ctx.fillText('© 2026 80GAME   ALL RIGHTS RESERVED',W/2,H-6);
+  ctx.fillText('© 2026 80GAME   ALL RIGHTS RESERVED   VER '+VERSION,W/2,H-6);
   ctx.fillStyle='#446'; ctx.font='7px monospace';
   ctx.fillText('[B] BONUS TEST',W/2,H-16);
 }
