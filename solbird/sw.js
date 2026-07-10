@@ -1,5 +1,5 @@
-// SOLBIRD Service Worker — キャッシュファースト（完全オフライン動作）
-const CACHE = 'solbird-v1';
+// SOLBIRD Service Worker — ネットワーク優先（オフライン時のみキャッシュにフォールバック）
+const CACHE = 'solbird-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -25,15 +25,13 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(hit =>
-      hit || fetch(e.request).then(res => {
-        // 同一オリジンの正常応答のみキャッシュに追加
-        if(res.ok && new URL(e.request.url).origin === location.origin){
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-        }
-        return res;
-      })
-    )
+    fetch(e.request).then(res => {
+      // 同一オリジンの正常応答のみキャッシュに追加
+      if(res.ok && new URL(e.request.url).origin === location.origin){
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });

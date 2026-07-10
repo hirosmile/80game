@@ -1,5 +1,5 @@
-// DIGDIG Service Worker — キャッシュファースト（完全オフライン動作）
-const CACHE = 'digdig-v1';
+// DIGDIG Service Worker — ネットワーク優先（オフライン時のみキャッシュにフォールバック）
+const CACHE = 'digdig-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -25,14 +25,12 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if(e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(hit =>
-      hit || fetch(e.request).then(res => {
-        if(res.ok && new URL(e.request.url).origin === location.origin){
-          const copy = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, copy));
-        }
-        return res;
-      })
-    )
+    fetch(e.request).then(res => {
+      if(res.ok && new URL(e.request.url).origin === location.origin){
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy));
+      }
+      return res;
+    }).catch(() => caches.match(e.request))
   );
 });
