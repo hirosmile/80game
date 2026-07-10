@@ -39,9 +39,16 @@
   .ab.on{filter:brightness(1.4);transform:translateY(2px)}
   /* PC (mouse / hover) : hide touch deck so the game uses full height */
   @media (hover:hover) and (pointer:fine){ #deck{ display:none; } }
+  #backHome { position:fixed; top:calc(8px + env(safe-area-inset-top)); left:8px; z-index:999;
+    display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:20px;
+    background:rgba(20,10,10,.55); border:1px solid rgba(232,185,60,.4);
+    color:#e8b93c; font-family:monospace; font-size:11px; font-weight:bold;
+    letter-spacing:1px; text-decoration:none; backdrop-filter:blur(2px); }
+  #backHome:active { filter:brightness(1.3); }
 </style>
 </head>
 <body>
+<a id="backHome" href="../">◀ 80game</a>
 <div id="wrap">
   <div id="stage"><canvas id="cv" width="256" height="368"></canvas></div>
   <div id="deck">
@@ -1395,7 +1402,7 @@ function drawTitle(){
   ctx.fillText('ARROWS:MOVE   A:DOOR   B:DASH',W/2,326);
   if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.fillText('PUSH BUTTON',W/2,342); }
   ctx.fillStyle='#c7913e'; ctx.font='7px monospace';
-  ctx.fillText('© 2026 80GAME   ALL RIGHTS RESERVED',W/2,H-6);
+  ctx.fillText('© 2026 80game   ALL RIGHTS RESERVED',W/2,H-6);
   ctx.fillStyle='#446'; ctx.font='7px monospace';
   ctx.fillText('[B] BONUS TEST',W/2,H-16);
 }
