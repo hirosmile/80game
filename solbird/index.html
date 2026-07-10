@@ -113,6 +113,12 @@
   #btnZap  { color:var(--label-a); }
   #btnBlast{ color:var(--label-b); }
   .knob.on { filter:brightness(1.4); transform:translateY(2px); }
+  #deckHome { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:clamp(30px,9vw,40px); height:clamp(30px,9vw,40px); border-radius:50%;
+    background:var(--control-base); box-shadow:var(--shadow-btn);
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(14px,4vw,18px); text-decoration:none; z-index:3; }
+  #deckHome:active { filter:brightness(1.4); }
   /* PC (mouse / hover) : hide touch deck, letterbox-center the canvas */
   @media (hover:hover) and (pointer:fine){
     #deck { display:none; }
@@ -191,6 +197,7 @@
     <div class="dz" id="d-right"></div>
     <div class="dz" id="d-down"></div>
   </div>
+  <a id="deckHome" href="../">🏠</a>
   <div id="ab">
     <div class="rBtn"><button class="knob" id="btnBlast">B</button></div>
     <div class="rBtn"><button class="knob" id="btnZap">A</button></div>

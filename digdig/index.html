@@ -54,6 +54,7 @@
     background:var(--deck-bg);
     border-top:4px solid var(--deck-edge);
     display:flex;align-items:center;justify-content:space-between;
+    position:relative;
   }
   /* 方向キー */
   #dpad{
@@ -94,6 +95,12 @@
   #bB{color:var(--label-b);}
   #bA{color:var(--label-a);}
   .ab small{font-size:9px;color:var(--label-sub);font-weight:normal;letter-spacing:0;margin-top:2px;}
+  #deckHome{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:clamp(30px,9vw,40px);height:clamp(30px,9vw,40px);border-radius:50%;
+    background:var(--control-base);box-shadow:var(--shadow-btn);
+    display:flex;align-items:center;justify-content:center;font-size:clamp(14px,4vw,18px);
+    text-decoration:none;z-index:3;}
+  #deckHome:active{filter:brightness(1.4);}
   /* ===== タイトルオーバーレイ ===== */
   #title{
     position:fixed;inset:0;z-index:20;
@@ -171,6 +178,7 @@
     <div class="dz" id="dL"></div>
     <div class="dz" id="dR"></div>
   </div>
+  <a id="deckHome" href="../">🏠</a>
   <div id="btns">
     <button class="ab" id="bB" aria-label="ポンプ">B</button>
     <button class="ab" id="bA" aria-label="モリ">A</button>
@@ -293,7 +301,7 @@ bA.addEventListener("pointerdown",ev=>{ensureAudio();bA.setPointerCapture(ev.poi
 function bAup(){input.pump=false;bA.classList.remove("on");}
 bA.addEventListener("pointerup",bAup);
 bA.addEventListener("pointercancel",bAup);
-document.body.addEventListener("touchstart",e=>{if(e.target.closest("#deck"))e.preventDefault();},{passive:false});
+document.body.addEventListener("touchstart",e=>{if(e.target.closest("#deck")&&!e.target.closest("#deckHome"))e.preventDefault();},{passive:false});
 document.addEventListener("contextmenu",e=>e.preventDefault());
 
 startBtn.addEventListener("click",()=>{ensureAudio();startGame();});
