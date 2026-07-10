@@ -49,6 +49,7 @@
 </head>
 <body>
 <a id="backHome" href="../">◀ 80game</a>
+<script>document.addEventListener('keydown', e => { if(e.key === 'Escape') location.href = '../'; });</script>
 <div id="wrap">
   <div id="stage"><canvas id="cv" width="256" height="368"></canvas></div>
   <div id="deck">
