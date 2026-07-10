@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>DIGDIG — 戦略的穴掘りアクション</title>
+<meta name="theme-color" content="#14161F">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="DIGDIG">
 <style>
   :root{
     --deck:#14161F; --deck2:#1C2030; --panel:#232838;
@@ -42,9 +50,9 @@
   }
   /* ===== コントロールデッキ（CHUPPY デザインシステム）===== */
   :root{
-    --deck-bg:#3c080a; --deck-edge:#260506; --control-base:#1c1c1e;
+    --deck-bg:#0f1322; --deck-edge:#05060f; --control-base:#1c1c1e;
     --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#cc9999;
-    --btn-size:48px; --btn-gap:9px; --dpad-size:96px;
+    --btn-size:48px; --btn-gap:9px; --dpad-size:84px;
     --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
     --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
   }
@@ -235,6 +243,7 @@ const finalEl=document.getElementById("finalScore");
 function mkCanvas(){const c=document.createElement("canvas");c.width=W;c.height=H;return c;}
 const dirtCv=mkCanvas(), dirtCtx=dirtCv.getContext("2d");
 const tunCv=mkCanvas(),  tunCtx=tunCv.getContext("2d");
+const edgeCv=mkCanvas(), edgeCtx=edgeCv.getContext("2d");   // トンネル縁取り用
 
 // ---------- 状態 ----------
 const G={mode:"title", round:1, score:0, hi:10000, lives:3, timer:0,
@@ -1207,19 +1216,19 @@ const SPR_G1=makeSprite(gaburaRows(),G_PAL);
 const SPR_GF=makeSprite(gaburaRows(),G_PALF);
 // 岩
 const SPR_ROCK=makeSprite([
-"....GGGGGG....",
-"..GGHHHGGGGG..",
-".GHHHGGGGGGGG.",
-".GHHGGGGGGGGG.",
-"GGHGGGGGGKGGGG",
-"GGGGGGGGKKKGGG",
-"GGGGGKGGGKGGGG",
-"GGGGKKKGGGGGGG",
-".GGGGKGGGGGGD.",
-".DGGGGGGGGDDD.",
-"..DDGGGGGDDD..",
-"....DDDDDD....",
-],{G:"#8A8A96",H:"#C0C0CC",K:"#4A4A54",D:"#55555E"});
+"....OOOOOO....",
+"..OOHHHGGGOO..",
+".OHHHHGGGGGGO.",
+".OHHHGGGGGGKO.",
+"OHHGGGGGGKKGGO",
+"OHGGGGGKKGGGDO",
+"OGGGGKKGGGGDDO",
+"OGGGKGGGGGDDDO",
+".ODGGGGGGDDDO.",
+".ODDGGGGDDDDO.",
+"..OODDDDDDOO..",
+"....OOOOOO....",
+],{O:"#26262E",H:"#D8D8E4",G:"#8A8A96",K:"#3E3E48",D:"#5E5E6A"});
 // 野菜（ラウンドごとに循環）
 const SPR_VEG=[
 makeSprite([ // かぶ
@@ -1279,8 +1288,17 @@ function render(){
   }
   // 空（青空）
   ctx.fillStyle="#2040C8";ctx.fillRect(0,0,W,SKY*TILE);
-  // 地層＋トンネル
+  // 地層＋トンネル（黒穴の周囲に濃茶のリムを敷いて土に馴染ませる）
   ctx.drawImage(dirtCv,0,0);
+  edgeCtx.globalCompositeOperation="copy";
+  edgeCtx.drawImage(tunCv,0,0);
+  edgeCtx.globalCompositeOperation="source-in";
+  edgeCtx.fillStyle="#3A1C0C";edgeCtx.fillRect(0,0,W,H);
+  for(const o of [[-2,0],[2,0],[0,-2],[0,2],[-2,-2],[2,-2],[-2,2],[2,2]])
+    ctx.drawImage(edgeCv,o[0],o[1]);
+  edgeCtx.fillStyle="#5E3014";edgeCtx.fillRect(0,0,W,H);
+  for(const o of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]])
+    ctx.drawImage(edgeCv,o[0],o[1]);
   ctx.drawImage(tunCv,0,0);
   // 地表の草
   ctx.fillStyle="#2E8B3A";ctx.fillRect(0,SKY*TILE-3,W,3);
@@ -1348,7 +1366,7 @@ function drawPlayer(){
   const x=player.x,y=player.y;
   if(!player.alive){
     const t=player.deadT;
-    const sc=1+Math.min(1,t/0.6)*0.6;          // 1.0 → 1.6倍へ拡大
+    const sc=(1+Math.min(1,t/0.6)*0.6)*1.25;   // 1.25 → 2倍へ拡大
     const al=Math.max(0,1-t/1.4);              // 徐々にフェードアウト
     if(al<=0)return;
     ctx.save();
@@ -1368,7 +1386,7 @@ function drawPlayer(){
   if(player.dir==="up")      img=f?SPR_PU2:SPR_PU1;
   else if(player.dir==="down")img=f?SPR_PD2:SPR_PD1;
   else{img=f?SPR_P2:SPR_P1;flip=player.face==="left";}
-  drawSpr(img,x,y-(player.moving&&f?1:0),flip,1);
+  drawSpr(img,x,y-(player.moving&&f?1:0),flip,1.25);
 }
 function drawEnemy(e){
   const x=e.x,y=e.y;
@@ -1377,7 +1395,7 @@ function drawEnemy(e){
     ctx.save();
     ctx.translate(px(e.x),px(e.y));
     if(e.face==="left")ctx.scale(-1,1);
-    ctx.scale(1.35,0.4);
+    ctx.scale(1.7,0.5);
     ctx.imageSmoothingEnabled=false;
     ctx.drawImage(img,Math.round(-img.width/2),Math.round(-img.height/2));
     ctx.restore();
@@ -1391,7 +1409,7 @@ function drawEnemy(e){
     ctx.fillRect(px(x)-5+go,px(y)-1,2,2);ctx.fillRect(px(x)+3+go,px(y)-1,2,2);
     return;
   }
-  const s=1+e.inflate*0.45;   // 1段階ごとに+45%（3段階で約2.4倍）
+  const s=(1+e.inflate*0.45)*1.25;   // 基本1.25倍・1段階ごとに+45%
   const f2=Math.floor(e.animT*8)%2;
   let img;
   if(e.type==="fuwan")img=f2?SPR_F2:SPR_F1;
@@ -1483,12 +1501,12 @@ function drawVeg(v){
   drawSpr(SPR_VEG[v.idx%SPR_VEG.length],v.x,v.y,false,1);
 }
 function drawHUD(){
-  text("1UP",2,2,"#FF5A6E",2);
-  text(String(G.score).padStart(6,"0"),28,2,"#F8F8F8",2);
-  text("HI",W-64,2,"#FFC53D",2);
-  text(String(G.hi).padStart(6,"0"),W-48,2,"#F8F8F8",2);
+  text("1UP",8,4,"#FF5A6E",2);
+  text(String(G.score).padStart(6,"0"),34,4,"#F8F8F8",2);
+  text("HIGH",W-88,4,"#FFC53D",2);
+  text(String(G.hi).padStart(6,"0"),W-52,4,"#F8F8F8",2);
   for(let i=0;i<Math.max(0,G.lives);i++)
-    drawSpr(SPR_P1,9+i*14,21,true,1);   // 左向きディギー
+    drawSpr(SPR_P1,13+i*15,25,true,1);   // 左向きディギー
 }
 function drawBanners(){
   if(G.mode==="entry"){
