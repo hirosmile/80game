@@ -1,7 +1,7 @@
 {
   "name": "DIGDIG",
   "short_name": "DIGDIG",
-  "description": "戦略的穴掘りアクション by 80GAME",
+  "description": "戦略的穴掘りアクション by 80game",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
