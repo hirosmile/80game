@@ -42,38 +42,40 @@
   }
   /* ===== コントロールデッキ（CHUPPY デザインシステム）===== */
   :root{
-    --deck-bg:#8f0f13; --deck-edge:#5c0a0d; --control-base:#1c1c1e;
+    --deck-bg:#3c080a; --deck-edge:#260506; --control-base:#1c1c1e;
     --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#cc9999;
-    --btn-size:64px; --btn-gap:12px; --dpad-size:128px;
+    --btn-size:48px; --btn-gap:9px; --dpad-size:96px;
     --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
     --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
   }
   #deck{
     flex:0 0 auto;
-    padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+    padding:4px 18px calc(6px + env(safe-area-inset-bottom));
     background:var(--deck-bg);
     border-top:4px solid var(--deck-edge);
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;flex-direction:column;gap:1px;
     position:relative;
   }
+  #deckTop{display:flex;justify-content:flex-end;}
+  #deckMain{display:flex;align-items:center;justify-content:space-between;}
   /* 方向キー */
   #dpad{
     position:relative;width:var(--dpad-size);height:var(--dpad-size);
     touch-action:none;flex:0 0 auto;
   }
   #dcross{
-    position:absolute;inset:8px;
-    background:rgba(255,255,255,.85);border-radius:6px;
+    position:absolute;inset:7px;
+    background:rgba(255,255,255,.85);border-radius:5px;
     clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);
     transition:filter .05s;
   }
-  #dcrossFill{position:absolute;inset:2px;background:#000;
+  #dcrossFill{position:absolute;inset:2px;background:#242424;
     clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);}
   #dcross.on{filter:brightness(1.25);}
   #dcross::after{                    /* 中央のくぼみ */
     content:"";position:absolute;left:50%;top:50%;
-    width:14px;height:14px;transform:translate(-50%,-50%);
-    border-radius:50%;background:#141416;box-shadow:inset 0 2px 3px #000;
+    width:12px;height:12px;transform:translate(-50%,-50%);
+    border-radius:50%;background:#181818;box-shadow:inset 0 1px 2px rgba(0,0,0,.5);
   }
   .dz{position:absolute;background:transparent;z-index:2;touch-action:none;}
   /* 上下左右4分割の当たり判定（十字は象徴、判定は大きく） */
@@ -85,9 +87,9 @@
   #btns{display:flex;gap:var(--btn-gap);align-items:center;flex:0 0 auto;}
   .ab{
     width:var(--btn-size);height:var(--btn-size);border-radius:50%;
-    background:#000;border:2px solid #fff;
-    box-shadow:0 2px 6px rgba(0,0,0,.4);
-    font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:1px;
+    background:#242424;border:2px solid #fff;
+    box-shadow:0 1px 3px rgba(0,0,0,.22);
+    font-family:monospace;font-size:17px;font-weight:bold;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     line-height:1;transition:transform .05s, background .05s, color .05s;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -96,13 +98,15 @@
   #bB{--ab-accent:var(--label-b);border-color:var(--label-b);color:var(--label-b);}
   #bA{--ab-accent:var(--label-a);border-color:var(--label-a);color:var(--label-a);}
   .ab small{font-size:9px;color:var(--label-sub);font-weight:normal;letter-spacing:0;margin-top:2px;}
-  #deckHome,#backHome{border-radius:50%;background:#000;border:2px solid #fff;
-    display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;
-    box-shadow:0 2px 6px rgba(0,0,0,.4);}
-  #deckHome svg,#backHome svg{width:55%;height:55%;}
-  #deckHome{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:clamp(30px,9vw,40px);height:clamp(30px,9vw,40px);z-index:3;}
-  #deckHome:active{background:#fff;color:#141414;}
+  #deckHome{border-radius:50%;width:28px;height:28px;
+    background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.5);
+    display:flex;align-items:center;justify-content:center;
+    text-decoration:none;color:rgba(255,255,255,.85);
+    transition:transform .12s ease-out, box-shadow .12s ease-out,
+      border-color .12s ease-out, background-color .12s ease-out, color .12s ease-out;}
+  #deckHome svg{width:52%;height:52%;}
+  #deckHome:active{transform:scale(.86);background:rgba(255,255,255,.18);
+    border-color:#fff;color:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.12);}
   /* ===== タイトルオーバーレイ ===== */
   #title{
     position:fixed;inset:0;z-index:20;
@@ -136,10 +140,6 @@
   #startBtn:active{transform:translateY(4px);box-shadow:0 2px 0 #9C6A00;}
   @keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
   @media (prefers-reduced-motion:reduce){#startBtn{animation:none}}
-  @media (max-height:680px){
-    #dpad{width:112px;height:112px;}
-    .ab{width:56px;height:56px;}
-  }
   .howto{
     display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;
     font-size:14px;color:#B8C0DE;text-align:left;max-width:340px;line-height:1.5;
@@ -157,12 +157,15 @@
     #deck{ display:none; }
   }
   #backHome { position:fixed; top:calc(8px + env(safe-area-inset-top)); left:8px; z-index:999;
-    width:36px; height:36px; backdrop-filter:blur(2px); }
-  #backHome:active { background:#fff; color:#141414; }
+    display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:20px;
+    background:rgba(20,10,10,.55); border:1px solid rgba(232,185,60,.4);
+    color:#e8b93c; font-family:monospace; font-size:11px; font-weight:bold;
+    letter-spacing:1px; text-decoration:none; backdrop-filter:blur(2px); }
+  #backHome:active { filter:brightness(1.3); }
 </style>
 </head>
 <body>
-<a id="backHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
+<a id="backHome" href="../">◀ 80game</a>
 <script>document.addEventListener('keydown', e => { if(e.key === 'Escape') location.href = '../'; });</script>
 
 <div id="screenArea">
@@ -170,6 +173,10 @@
 </div>
 
 <div id="deck">
+  <div id="deckTop">
+    <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
+  </div>
+  <div id="deckMain">
   <div id="dpad">
     <div id="dcross"><div id="dcrossFill"></div></div>
     <div class="dz" id="dU"></div>
@@ -177,10 +184,10 @@
     <div class="dz" id="dL"></div>
     <div class="dz" id="dR"></div>
   </div>
-  <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
   <div id="btns">
     <button class="ab" id="bB" aria-label="ポンプ">B</button>
     <button class="ab" id="bA" aria-label="モリ">A</button>
+  </div>
   </div>
 </div>
 
@@ -899,6 +906,13 @@ function startGame(){
   newRound();
   G.mode="inter";G.timer=1.8;   // 黒画面カード → 入場演出へ
 }
+function returnToTitle(){
+  G.mode="title";
+}
+document.getElementById("deckHome").addEventListener("click",e=>{
+  e.preventDefault();
+  returnToTitle();
+});
 function gameOver(){
   G.mode="over";G.timer=3;
 }

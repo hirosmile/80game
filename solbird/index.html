@@ -67,18 +67,20 @@
   .tag-air { color:#7ec8ff; } .tag-gnd { color:#ff9c6a; }
   .hidden { display:none !important; }
   :root {
-    --deck-bg:#8f0f13; --deck-edge:#5c0a0d; --control-base:#1c1c1e;
+    --deck-bg:#3c080a; --deck-edge:#260506; --control-base:#1c1c1e;
     --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#c99;
     --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
     --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
-    --btn-size:64px; --btn-gap:12px;
-    --dpad-size:128px; --dpad-inset:8px; --dpad-radius:6px;
+    --btn-size:48px; --btn-gap:9px;
+    --dpad-size:96px; --dpad-inset:7px; --dpad-radius:5px;
   }
   #deck { flex:0 0 auto;
-    padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+    padding:4px 18px calc(6px + env(safe-area-inset-bottom));
     background:var(--deck-bg); border-top:4px solid var(--deck-edge);
-    display:flex; align-items:center; justify-content:space-between;
+    display:flex; flex-direction:column; gap:1px;
     position:relative; }
+  #deckTop { display:flex; justify-content:flex-end; }
+  #deckMain { display:flex; align-items:center; justify-content:space-between; }
   #deck.rise { animation:deckRise .6s cubic-bezier(.18,.85,.25,1) both; }
   @keyframes deckRise {
     from { transform:translateY(110%); opacity:.3; }
@@ -90,47 +92,51 @@
     background:rgba(255,255,255,.85); border-radius:var(--dpad-radius);
     clip-path:polygon(34% 0, 66% 0, 66% 34%, 100% 34%, 100% 66%, 66% 66%, 66% 100%, 34% 100%, 34% 66%, 0 66%, 0 34%, 34% 34%);
     transition:filter .05s; }
-  #dcross::after { content:""; position:absolute; inset:2px; background:#000;
+  #dcross::after { content:""; position:absolute; inset:2px; background:#242424;
     clip-path:polygon(34% 0, 66% 0, 66% 34%, 100% 34%, 100% 66%, 66% 66%, 66% 100%, 34% 100%, 34% 66%, 0 66%, 0 34%, 34% 34%); }
-  .dz { position:absolute; width:44px; height:44px; z-index:2;
+  .dz { position:absolute; width:32px; height:32px; z-index:2;
     pointer-events:none; }
-  #d-up{left:42px;top:0;} #d-down{left:42px;bottom:0;}
-  #d-left{left:0;top:42px;} #d-right{right:0;top:42px;}
+  #d-up{left:32px;top:0;} #d-down{left:32px;bottom:0;}
+  #d-left{left:0;top:32px;} #d-right{right:0;top:32px;}
   #dpad.on #dcross { filter:brightness(1.25); }
-  #d-center{position:absolute;left:42px;top:42px;width:44px;height:44px;
+  #d-center{position:absolute;left:32px;top:32px;width:32px;height:32px;
     z-index:3; pointer-events:none;
     display:flex;align-items:center;justify-content:center;}
-  #d-center::after{content:"";width:14px;height:14px;border-radius:50%;
-    background:#111;box-shadow:inset 0 1px 2px rgba(0,0,0,.6);}
+  #d-center::after{content:"";width:12px;height:12px;border-radius:50%;
+    background:#181818;box-shadow:inset 0 1px 2px rgba(0,0,0,.5);}
   #ab { display:flex; gap:var(--btn-gap); align-items:center;
     z-index:2; flex:0 0 auto; }
   .rBtn { display:flex; flex-direction:column; align-items:center; gap:3px; }
   .rBtn small { font-size:9px; color:var(--label-sub); letter-spacing:.5px; }
   .knob { width:var(--btn-size); height:var(--btn-size); border-radius:50%;
-    background:#000; border:2px solid var(--knob-color,#fff); padding:0;
-    box-shadow:0 2px 6px rgba(0,0,0,.4);
-    font-size:20px; font-weight:bold; letter-spacing:1px; font-family:inherit;
+    background:#242424; border:2px solid var(--knob-color,#fff); padding:0;
+    box-shadow:0 1px 3px rgba(0,0,0,.22);
+    font-size:17px; font-weight:bold; letter-spacing:1px; font-family:inherit;
     color:var(--knob-color,#fff);
     transition:filter .05s, transform .05s, background .05s, color .05s; }
   #btnZap  { --knob-color:var(--label-a); }
   #btnBlast{ --knob-color:var(--label-b); }
   .knob.on { transform:translateY(2px); background:var(--knob-color,#fff); color:#141414; }
-  #deckHome, #backHome { border-radius:50%;
-    background:#000; border:2px solid #fff;
+  #deckHome { border-radius:50%; width:28px; height:28px;
+    background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.5);
     display:flex; align-items:center; justify-content:center;
-    text-decoration:none; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.4); }
-  #deckHome svg, #backHome svg { width:55%; height:55%; }
-  #deckHome { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:clamp(30px,9vw,40px); height:clamp(30px,9vw,40px); z-index:3; }
-  #deckHome:active { background:#fff; color:#141414; }
+    text-decoration:none; color:rgba(255,255,255,.85);
+    transition:transform .12s ease-out, box-shadow .12s ease-out,
+      border-color .12s ease-out, background-color .12s ease-out, color .12s ease-out; }
+  #deckHome svg { width:52%; height:52%; }
+  #deckHome:active { transform:scale(.86); background:rgba(255,255,255,.18);
+    border-color:#fff; color:#fff; box-shadow:0 0 0 6px rgba(255,255,255,.12); }
   /* PC (mouse / hover) : hide touch deck, letterbox-center the canvas */
   @media (hover:hover) and (pointer:fine){
     #deck { display:none; }
     #wrap { align-items:center; }
   }
   #backHome { position:fixed; top:calc(8px + env(safe-area-inset-top)); left:8px; z-index:999;
-    width:36px; height:36px; backdrop-filter:blur(2px); }
-  #backHome:active { background:#fff; color:#141414; }
+    display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:20px;
+    background:rgba(20,10,10,.55); border:1px solid rgba(232,185,60,.4);
+    color:#e8b93c; font-family:'Courier New', monospace; font-size:11px; font-weight:bold;
+    letter-spacing:1px; text-decoration:none; backdrop-filter:blur(2px); }
+  #backHome:active { filter:brightness(1.3); }
 </style>
 </head>
 <body>
@@ -144,7 +150,7 @@
     <span id="lv">SHIPS ♦♦♦</span>
   </div>
   <div id="overlay">
-    <a id="backHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
+    <a id="backHome" href="../">◀ 80game</a>
     <div id="overlayInner">
       <div class="titleHead">
         <h1 id="title">SOLBIRD</h1>
@@ -190,6 +196,10 @@
   </div>
 </div>
 <div id="deck">
+  <div id="deckTop">
+    <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
+  </div>
+  <div id="deckMain">
   <div id="dpad">
     <div id="dcross"></div>
     <div class="dz" id="d-up"></div>
@@ -198,10 +208,10 @@
     <div class="dz" id="d-right"></div>
     <div class="dz" id="d-down"></div>
   </div>
-  <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
   <div id="ab">
     <div class="rBtn"><button class="knob" id="btnBlast">B</button></div>
     <div class="rBtn"><button class="knob" id="btnZap">A</button></div>
+  </div>
   </div>
 </div>
 <script>
@@ -325,6 +335,15 @@ function riseDeck(){
   void d.offsetWidth;
   d.classList.add('rise');
 }
+function returnToTitle(){
+  state = 'title';
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('deck').classList.remove('rise');
+}
+document.getElementById('deckHome').addEventListener('click', e => {
+  e.preventDefault();
+  returnToTitle();
+});
 cvs.addEventListener('pointerdown', e => {
   if(canStart()){ handleStartInput(); e.preventDefault(); }
 });
