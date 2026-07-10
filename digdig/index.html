@@ -63,14 +63,12 @@
   }
   #dcross{
     position:absolute;inset:8px;
-    background:var(--control-base);border-radius:6px;
-    box-shadow:var(--shadow-dpad);
+    background:rgba(255,255,255,.85);border-radius:6px;
     clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);
     transition:filter .05s;
   }
-  #dcross::before{content:"";position:absolute;inset:-2px;background:rgba(255,255,255,.85);
-    clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);
-    z-index:-1;}
+  #dcrossFill{position:absolute;inset:2px;background:#000;
+    clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);}
   #dcross.on{filter:brightness(1.25);}
   #dcross::after{                    /* 中央のくぼみ */
     content:"";position:absolute;left:50%;top:50%;
@@ -87,7 +85,7 @@
   #btns{display:flex;gap:var(--btn-gap);align-items:center;flex:0 0 auto;}
   .ab{
     width:var(--btn-size);height:var(--btn-size);border-radius:50%;
-    background:rgba(255,255,255,.05);border:2px solid #fff;
+    background:#000;border:2px solid #fff;
     box-shadow:0 2px 6px rgba(0,0,0,.4);
     font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
@@ -98,7 +96,7 @@
   #bB{--ab-accent:var(--label-b);border-color:var(--label-b);color:var(--label-b);}
   #bA{--ab-accent:var(--label-a);border-color:var(--label-a);color:var(--label-a);}
   .ab small{font-size:9px;color:var(--label-sub);font-weight:normal;letter-spacing:0;margin-top:2px;}
-  #deckHome,#backHome{border-radius:50%;background:rgba(255,255,255,.05);border:2px solid #fff;
+  #deckHome,#backHome{border-radius:50%;background:#000;border:2px solid #fff;
     display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;
     box-shadow:0 2px 6px rgba(0,0,0,.4);}
   #deckHome svg,#backHome svg{width:55%;height:55%;}
@@ -173,7 +171,7 @@
 
 <div id="deck">
   <div id="dpad">
-    <div id="dcross"></div>
+    <div id="dcross"><div id="dcrossFill"></div></div>
     <div class="dz" id="dU"></div>
     <div class="dz" id="dD"></div>
     <div class="dz" id="dL"></div>

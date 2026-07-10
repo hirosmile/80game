@@ -23,17 +23,15 @@
     display:flex;align-items:center;justify-content:space-between;position:relative;
     padding:12px 18px calc(12px + env(safe-area-inset-bottom));}
   #dpad{position:relative;width:128px;height:128px}
-  #dcross{position:absolute;inset:8px;background:#1c1c1e;border-radius:6px;
-    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%);
-    box-shadow:inset 0 -4px 0 rgba(0,0,0,.5)}
-  #dcross::before{content:"";position:absolute;inset:-2px;background:rgba(255,255,255,.85);
-    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%);
-    z-index:-1}
+  #dcross{position:absolute;inset:8px;background:rgba(255,255,255,.85);border-radius:6px;
+    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
+  #dcross::after{content:"";position:absolute;inset:2px;background:#000;
+    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
   .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
   #dL{left:0}#dR{right:0}
   .dz.on ~ #dcross{filter:brightness(1.25)}
   #btns{display:flex;align-items:center;gap:12px}
-  .ab{width:64px;height:64px;border-radius:50%;background:rgba(255,255,255,.05);
+  .ab{width:64px;height:64px;border-radius:50%;background:#000;
     border:2px solid #e8b93c;color:#e8b93c;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-weight:bold;font-size:20px;letter-spacing:1px;
@@ -42,7 +40,7 @@
   .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
   .ab.on{transform:translateY(2px);background:#e8b93c;color:#141414}
   #bB.on{background:#7ec8ff}
-  #deckHome,#backHome{border-radius:50%;background:rgba(255,255,255,.05);border:2px solid #fff;
+  #deckHome,#backHome{border-radius:50%;background:#000;border:2px solid #fff;
     display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;
     box-shadow:0 2px 6px rgba(0,0,0,.4)}
   #deckHome svg,#backHome svg{width:55%;height:55%}
