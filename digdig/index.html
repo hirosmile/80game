@@ -42,18 +42,18 @@
   }
   /* ===== コントロールデッキ（CHUPPY デザインシステム）===== */
   :root{
-    --deck-bg:#5c0d10; --deck-edge:#3a0709; --control-base:#1c1c1e;
+    --deck-bg:#3c080a; --deck-edge:#260506; --control-base:#1c1c1e;
     --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#cc9999;
-    --btn-size:56px; --btn-gap:12px; --dpad-size:112px;
+    --btn-size:48px; --btn-gap:9px; --dpad-size:96px;
     --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
     --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
   }
   #deck{
     flex:0 0 auto;
-    padding:4px 18px calc(8px + env(safe-area-inset-bottom));
+    padding:4px 18px calc(6px + env(safe-area-inset-bottom));
     background:var(--deck-bg);
     border-top:4px solid var(--deck-edge);
-    display:flex;flex-direction:column;gap:2px;
+    display:flex;flex-direction:column;gap:1px;
     position:relative;
   }
   #deckTop{display:flex;justify-content:flex-end;}
@@ -64,8 +64,8 @@
     touch-action:none;flex:0 0 auto;
   }
   #dcross{
-    position:absolute;inset:8px;
-    background:rgba(255,255,255,.85);border-radius:6px;
+    position:absolute;inset:7px;
+    background:rgba(255,255,255,.85);border-radius:5px;
     clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);
     transition:filter .05s;
   }
@@ -74,8 +74,8 @@
   #dcross.on{filter:brightness(1.25);}
   #dcross::after{                    /* 中央のくぼみ */
     content:"";position:absolute;left:50%;top:50%;
-    width:14px;height:14px;transform:translate(-50%,-50%);
-    border-radius:50%;background:#141416;box-shadow:inset 0 2px 3px #000;
+    width:12px;height:12px;transform:translate(-50%,-50%);
+    border-radius:50%;background:#181818;box-shadow:inset 0 1px 2px rgba(0,0,0,.5);
   }
   .dz{position:absolute;background:transparent;z-index:2;touch-action:none;}
   /* 上下左右4分割の当たり判定（十字は象徴、判定は大きく） */
@@ -87,9 +87,9 @@
   #btns{display:flex;gap:var(--btn-gap);align-items:center;flex:0 0 auto;}
   .ab{
     width:var(--btn-size);height:var(--btn-size);border-radius:50%;
-    background:#000;border:2px solid #fff;
+    background:#242424;border:2px solid #fff;
     box-shadow:0 1px 3px rgba(0,0,0,.22);
-    font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:1px;
+    font-family:monospace;font-size:17px;font-weight:bold;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     line-height:1;transition:transform .05s, background .05s, color .05s;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;
@@ -140,10 +140,6 @@
   #startBtn:active{transform:translateY(4px);box-shadow:0 2px 0 #9C6A00;}
   @keyframes pulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.18)}}
   @media (prefers-reduced-motion:reduce){#startBtn{animation:none}}
-  @media (max-height:680px){
-    #dpad{width:112px;height:112px;}
-    .ab{width:56px;height:56px;}
-  }
   .howto{
     display:grid;grid-template-columns:auto 1fr;gap:8px 14px;align-items:center;
     font-size:14px;color:#B8C0DE;text-align:left;max-width:340px;line-height:1.5;
