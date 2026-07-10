@@ -58,12 +58,15 @@
     .play { animation:none; }
     .cab, .cab:hover { transition:none; transform:none; }
   }
+  .kbdhint { display:none; margin-top:14px; font-size:10px; letter-spacing:.22em; color:var(--dim); }
+  @media (hover:hover) and (pointer:fine){ .kbdhint { display:block; } }
 </style>
 </head>
 <body>
 <header>
   <div class="studio"><span class="n8">80</span>Game</div>
   <div class="select">— GAME SELECT —</div>
+  <div class="kbdhint">◀ ▶ ▲ ▼ SELECT&nbsp;&nbsp;&nbsp;↵ PLAY</div>
 </header>
 
 <main>
@@ -450,6 +453,20 @@ function loop(){
   drawSol(f); drawDig(f); drawChu(f);
 }
 loop();
+
+// ---- PC: GAME SELECT をキーボードで操作（矢印=選択 / Enter・Space=起動） ----
+(function(){
+  const cabs = [...document.querySelectorAll('.cab')];
+  if(!cabs.length) return;
+  const cur = () => cabs.indexOf(document.activeElement);
+  const focusCab = i => cabs[(i + cabs.length) % cabs.length].focus();
+  addEventListener('keydown', e => {
+    const i = cur();
+    if(e.key === 'ArrowRight' || e.key === 'ArrowDown'){ focusCab(i < 0 ? 0 : i + 1); e.preventDefault(); }
+    else if(e.key === 'ArrowLeft' || e.key === 'ArrowUp'){ focusCab(i < 0 ? 0 : i - 1); e.preventDefault(); }
+    else if(e.key === ' '){ if(i >= 0){ cabs[i].click(); e.preventDefault(); } }
+  });
+})();
 </script>
 </body>
 </html>

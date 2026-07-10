@@ -4,32 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>CHUPPY</title>
+<meta name="theme-color" content="#8f0f13">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="CHUPPY">
 <style>
-  html,body{margin:0;padding:0;background:#000;width:100%;height:100%;overflow:hidden;touch-action:none;
+  html,body{margin:0;padding:0;background:#000;height:100%;overflow:hidden;touch-action:none;
     -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;font-family:monospace}
-  #wrap{display:flex;flex-direction:column;width:100%;height:100dvh;overflow:hidden}
-  #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;overflow:hidden}
-  #cv{image-rendering:pixelated;background:#000;display:block;touch-action:none;max-width:100%;max-height:100%}
+  #wrap{display:flex;flex-direction:column;height:100dvh}
+  #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0}
+  #cv{image-rendering:pixelated;background:#000;display:block}
   /* ---- controller deck ---- */
-  #deck{flex:0 0 auto;box-sizing:border-box;width:100%;overflow:hidden;
-    background:#8f0f13;border-top:4px solid #5c0a0d;
+  #deck{flex:0 0 auto;background:#8f0f13;border-top:4px solid #5c0a0d;
     display:flex;align-items:center;justify-content:space-between;
-    padding:min(12px,3vw) min(18px,4vw) calc(min(12px,3vw) + env(safe-area-inset-bottom));}
-  #dpad{position:relative;width:min(128px,34vw);height:min(128px,34vw)}
+    padding:12px 18px calc(12px + env(safe-area-inset-bottom));}
+  #dpad{position:relative;width:128px;height:128px}
   #dcross{position:absolute;inset:8px;background:#1c1c1e;border-radius:6px;
     clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%);
     box-shadow:inset 0 -4px 0 rgba(0,0,0,.5)}
   .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
   #dL{left:0}#dR{right:0}
   .dz.on ~ #dcross{filter:brightness(1.25)}
-  #btns{display:flex;align-items:center;gap:min(12px,3vw)}
-  .ab{width:min(64px,17vw);height:min(64px,17vw);border-radius:50%;background:#1c1c1e;color:#e8b93c;
+  #btns{display:flex;align-items:center;gap:12px}
+  .ab{width:64px;height:64px;border-radius:50%;background:#1c1c1e;color:#e8b93c;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-weight:bold;font-size:min(20px,5.5vw);letter-spacing:1px;
+    font-weight:bold;font-size:20px;letter-spacing:1px;
     box-shadow:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4)}
   #bB{color:#7ec8ff}
   .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
   .ab.on{filter:brightness(1.4);transform:translateY(2px)}
+  /* PC (mouse / hover) : hide touch deck so the game uses full height */
+  @media (hover:hover) and (pointer:fine){ #deck{ display:none; } }
 </style>
 </head>
 <body>
@@ -100,11 +109,11 @@ const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 let RS=2; // 内部レンダリング倍率(整数)= ピクセルパーフェクト維持
 function resize(){
-  const stage=document.getElementById('stage');
-  // 実際の表示領域(stage)を測定してフィット(innerHeightと100dvhのズレを回避)
-  const availW=stage.clientWidth||window.innerWidth||W;
-  const availH=stage.clientHeight||1;
-  const s=Math.min(availW/W, availH/H);                 // 論理px→CSS px(縦横どちらもはみ出さない)
+  const deck=document.getElementById('deck');
+  const availW=window.innerWidth;
+  const availH=Math.max(1, window.innerHeight-deck.offsetHeight);
+  // アスペクト比を保って利用可能領域いっぱいまで拡大(スマホでは横幅にフィット)
+  const s=Math.min(availW/W, availH/H);                 // 論理px→CSS px
   const dpr=window.devicePixelRatio||1;
   RS=Math.max(1, Math.min(6, Math.round(s*dpr)));       // 整数バッキング倍率
   if(cv.width!==W*RS){ cv.width=W*RS; cv.height=H*RS; }
@@ -112,8 +121,7 @@ function resize(){
   cv.style.width=(W*s)+'px'; cv.style.height=(H*s)+'px';
 }
 window.addEventListener('resize',resize);
-window.addEventListener('orientationchange',()=>{ resize(); setTimeout(resize,200); });
-if(window.visualViewport){ window.visualViewport.addEventListener('resize',resize); }
+window.addEventListener('load',resize);
 
 // ---------- input ----------
 const inp={dir:0, l:false, r:false, aEdge:false, bHeld:false};
@@ -157,19 +165,6 @@ window.addEventListener('keyup',e=>{
   if(e.key==='x'||e.key==='X')inp.bHeld=false;
 });
 document.addEventListener('contextmenu',e=>e.preventDefault());
-// タップでの拡大を抑止(iOS Safari対策)
-// ピンチズーム(2本指ジェスチャ)を無効化
-['gesturestart','gesturechange','gestureend'].forEach(ev=>
-  document.addEventListener(ev,e=>e.preventDefault(),{passive:false}));
-// ダブルタップズームを無効化(300ms以内の連続タップを抑止)
-let lastTouchEnd=0;
-document.addEventListener('touchend',e=>{
-  const now=Date.now();
-  if(now-lastTouchEnd<=300) e.preventDefault();
-  lastTouchEnd=now;
-},{passive:false});
-// 2本指以上のタッチ(ピンチ)も無効化
-document.addEventListener('touchmove',e=>{ if(e.touches.length>1)e.preventDefault(); },{passive:false});
 
 // ---------- audio ----------
 let AC=null, musicStep=0, musicTimer=null;
@@ -230,7 +225,6 @@ let player, cats, doors, items, tramps, waves, pops;
 let balloons=[], bonusT=0;
 let stTimer=0, lastItemType=-1, combo=0;
 const ROUND_TIME=3000, HURRY_AT=600, HURRY_SCROLL=90;   // ~50秒 / 残り10秒でハリーアップ / 1回のスクロール長
-const VERSION='1.0';
 let roundT=ROUND_TIME, roundHurry=false, hurryFired=false, hurryT=0;
 
 function makeTramps(){
@@ -1401,7 +1395,7 @@ function drawTitle(){
   ctx.fillText('ARROWS:MOVE   A:DOOR   B:DASH',W/2,326);
   if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.fillText('PUSH BUTTON',W/2,342); }
   ctx.fillStyle='#c7913e'; ctx.font='7px monospace';
-  ctx.fillText('© 2026 80GAME   ALL RIGHTS RESERVED   VER '+VERSION,W/2,H-6);
+  ctx.fillText('© 2026 80GAME   ALL RIGHTS RESERVED',W/2,H-6);
   ctx.fillStyle='#446'; ctx.font='7px monospace';
   ctx.fillText('[B] BONUS TEST',W/2,H-16);
 }
@@ -1445,11 +1439,15 @@ function tick(){
 }
 newRound();
 resize();
-requestAnimationFrame(resize);
 setTimeout(resize,100);
-setTimeout(resize,400);
-window.addEventListener('load',resize);
 requestAnimationFrame(tick);
+
+// PWA: Service Worker登録（https配信時のみ動作。file://やローカル単体起動では静かにスキップ）
+if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>

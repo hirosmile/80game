@@ -4,14 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>DIGDIG — 戦略的穴掘りアクション</title>
-<meta name="theme-color" content="#8f0f13">
-<link rel="manifest" href="manifest.json">
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="DIGDIG">
 <style>
   :root{
     --deck:#14161F; --deck2:#1C2030; --panel:#232838;
@@ -151,6 +143,10 @@
   }
   #finalScore{font-size:13px;color:var(--dim);letter-spacing:.15em;display:none;}
   #credit{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));font-size:10px;color:#4A5170;letter-spacing:.1em;}
+  /* PC (mouse / hover) : hide touch deck so the game uses full height */
+  @media (hover:hover) and (pointer:fine){
+    #deck{ display:none; }
+  }
 </style>
 </head>
 <body>
@@ -1514,6 +1510,7 @@ function fit(){
   ctx.imageSmoothingEnabled=false;
 }
 window.addEventListener("resize",fit);
+window.addEventListener("load",fit);
 
 // ---------- メインループ ----------
 let last=0,tGlobal=0;
@@ -1540,13 +1537,6 @@ window.__G={G,input,update,startGame,newRound,
   set veg(v){veg=v},
   dugAt,carveTile,tileOpen,killPlayer,checkLastEnemy};
 })();
-
-// PWA: Service Worker登録（https配信時のみ動作。file://やローカル単体起動では静かにスキップ）
-if('serviceWorker' in navigator && location.protocol.startsWith('http')){
-  addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(() => {});
-  });
-}
 </script>
 </body>
 </html>
