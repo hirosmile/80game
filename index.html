@@ -39,21 +39,40 @@
       radial-gradient(ellipse 120% 90% at 50% 45%, transparent 62%, rgba(0,0,20,.45) 100%),
       repeating-linear-gradient(0deg, rgba(0,0,0,.15) 0 1px, transparent 1px 3px); }
 
-  header { text-align:center; padding:40px 20px 8px; }
-  .logoRow { display:flex; align-items:center; justify-content:center; gap:clamp(8px,2.5vw,22px); }
-  .wing { width:clamp(46px,9vw,92px); height:auto; flex:0 0 auto;
-    filter:drop-shadow(0 0 8px rgba(70,110,255,.5)); }
-  .wing.r { transform:scaleX(-1); }
+  header { text-align:center; padding:38px 20px 10px; position:relative; }
+  .logoRow { display:flex; align-items:center; justify-content:center; gap:clamp(14px,3.5vw,44px); }
+  /* アーケードHUD風の左右装飾（1UP / HI-SCORE） */
+  .hudBox { display:flex; flex-direction:column; gap:5px; flex:0 0 auto;
+    font-weight:bold; letter-spacing:.14em; text-align:center; }
+  .hudLbl { font-size:clamp(11px,1.6vw,15px); }
+  .hudLbl.red { color:#ff4b47; text-shadow:0 0 8px rgba(255,75,71,.5);
+    animation:blink1up 1.1s steps(1,end) infinite; }
+  .hudLbl.yel { color:#ffd52e; text-shadow:0 0 8px rgba(255,213,46,.45); }
+  .hudNum { font-size:clamp(11px,1.6vw,15px); color:#fff; }
+  @keyframes blink1up { 50% { opacity:0; } }
   .logoSvg { width:clamp(280px,54vw,620px); height:auto; overflow:visible;
-    filter:drop-shadow(0 0 26px rgba(255,120,40,.28)); }
-  .tag { margin-top:14px; display:flex; align-items:center; justify-content:center;
-    gap:clamp(10px,2vw,18px);
+    filter:drop-shadow(0 0 20px rgba(255,210,90,.16)); }
+  /* きらめく4ポイントスター（ナムコ風の原色） */
+  .spark { position:absolute; pointer-events:none;
+    clip-path:polygon(50% 0,61% 39%,100% 50%,61% 61%,50% 100%,39% 61%,0 50%,39% 39%);
+    animation:tw 1.8s steps(2,end) infinite; }
+  @keyframes tw { 50% { opacity:.25; } }
+  .spark.s1 { width:16px; height:16px; left:9%;  top:26px; background:#ffd52e; }
+  .spark.s2 { width:11px; height:11px; left:16%; top:96px; background:#3d8bff; animation-delay:.5s; }
+  .spark.s3 { width:9px;  height:9px;  left:24%; top:44px; background:#ff4b5c; animation-delay:.9s; }
+  .spark.s4 { width:16px; height:16px; right:9%;  top:88px; background:#ffd52e; animation-delay:.3s; }
+  .spark.s5 { width:11px; height:11px; right:17%; top:30px; background:#ff4b5c; animation-delay:1.1s; }
+  .spark.s6 { width:9px;  height:9px;  right:25%; top:110px; background:#3d8bff; animation-delay:.7s; }
+  .tag { margin-top:16px; display:flex; align-items:center; justify-content:center;
+    gap:clamp(10px,2vw,16px);
     font-size:clamp(11px,2.2vw,15px); font-weight:bold; letter-spacing:.42em;
-    color:#ffd75e; text-shadow:0 0 10px rgba(255,200,80,.4); padding-left:.42em; }
-  .tag i { width:34px; height:5px; flex:0 0 auto;
-    background:radial-gradient(circle, #ff5a7a 38%, transparent 42%);
-    background-size:12px 5px; background-repeat:repeat-x;
-    filter:drop-shadow(0 0 4px rgba(255,90,122,.6)); }
+    color:#ffd75e; text-shadow:0 0 10px rgba(255,200,80,.4); }
+  .tag .stars { display:flex; gap:7px; flex:0 0 auto; }
+  .tag .stars b { width:11px; height:11px;
+    clip-path:polygon(50% 0,63% 34%,98% 38%,72% 62%,80% 97%,50% 76%,20% 97%,28% 62%,2% 38%,37% 34%); }
+  .tag .stars b:nth-child(1) { background:#ff4b5c; }
+  .tag .stars b:nth-child(2) { background:#3d8bff; }
+  .tag .stars b:nth-child(3) { background:#ffd52e; }
 
   main { width:100%; max-width:1080px; padding:22px 26px 8px;
     display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:26px; }
@@ -140,51 +159,43 @@
     main { padding:18px 20px 6px; gap:20px; }
   }
   @media (max-width:560px) {
-    .wing { display:none; }
+    .hudBox { display:none; }
     .logoSvg { width:min(86vw,420px); }
+    .spark.s2, .spark.s6 { display:none; }
   }
   @media (max-width:480px) {
-    .tag { font-size:10px; letter-spacing:.26em; gap:8px; padding-left:.26em; }
-    .tag i { width:24px; }
+    .tag { font-size:10px; letter-spacing:.26em; gap:8px; }
+    .tag .stars b { width:9px; height:9px; }
+    .tag .stars { gap:5px; }
   }
   @media (prefers-reduced-motion: reduce) {
     .cab, .cab:hover { transition:none; transform:none; }
-    .cab::before { animation:none; }
+    .cab::before, .spark, .hudLbl.red { animation:none; }
   }
 </style>
 </head>
 <body>
 <header>
+  <span class="spark s1"></span><span class="spark s2"></span><span class="spark s3"></span>
+  <span class="spark s4"></span><span class="spark s5"></span><span class="spark s6"></span>
   <div class="logoRow">
-    <svg class="wing" viewBox="0 0 96 54" aria-hidden="true">
-      <defs>
-        <linearGradient id="wgB" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#6ea8ff"/><stop offset="1" stop-color="#1d3fd4"/>
-        </linearGradient>
-        <linearGradient id="wgR" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#ff7d93"/><stop offset="1" stop-color="#c9142e"/>
-        </linearGradient>
-      </defs>
-      <g transform="skewY(-4)">
-        <rect x="0"  y="6"  width="96" height="11" rx="5" fill="url(#wgB)"/>
-        <rect x="0"  y="6"  width="34" height="11" rx="5" fill="url(#wgR)"/>
-        <rect x="24" y="23" width="72" height="11" rx="5" fill="url(#wgB)"/>
-        <rect x="48" y="40" width="48" height="11" rx="5" fill="url(#wgB)"/>
-      </g>
-    </svg>
-    <h1 style="line-height:0; margin:0;"><svg class="logoSvg" viewBox="0 0 680 200" role="img" aria-label="80game">
+    <div class="hudBox" aria-hidden="true">
+      <span class="hudLbl red">1UP</span>
+      <span class="hudNum">0010000</span>
+    </div>
+    <h1 style="line-height:0; margin:0;"><svg class="logoSvg" viewBox="0 0 680 205" role="img" aria-label="80game">
       <defs>
         <linearGradient id="lgRed" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0"   stop-color="#ff9d85"/>
-          <stop offset=".36" stop-color="#f43b25"/>
-          <stop offset=".6"  stop-color="#d81a12"/>
-          <stop offset="1"   stop-color="#9e0d0d"/>
+          <stop offset="0"   stop-color="#ff8a76"/>
+          <stop offset=".36" stop-color="#f5231d"/>
+          <stop offset=".62" stop-color="#d81212"/>
+          <stop offset="1"   stop-color="#a80c0c"/>
         </linearGradient>
         <linearGradient id="lgGold" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0"   stop-color="#fff3a6"/>
-          <stop offset=".36" stop-color="#ffcf3d"/>
-          <stop offset=".6"  stop-color="#ffae10"/>
-          <stop offset="1"   stop-color="#d97e00"/>
+          <stop offset="0"   stop-color="#fff1a0"/>
+          <stop offset=".36" stop-color="#ffd52e"/>
+          <stop offset=".62" stop-color="#ffa400"/>
+          <stop offset="1"   stop-color="#e07800"/>
         </linearGradient>
         <linearGradient id="lgShine" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0"   stop-color="#fff" stop-opacity=".8"/>
@@ -194,26 +205,26 @@
       </defs>
       <g font-family="'Arial Black','Avenir Next',sans-serif" font-weight="900"
          font-size="130" letter-spacing="-4" text-anchor="middle">
-        <text x="340" y="152" transform="translate(0,9)" fill="#000" opacity=".45"
-              stroke="#000" stroke-width="26" stroke-linejoin="round">80game</text>
-        <text x="340" y="152" fill="#2a0a04"
-              stroke="#2a0a04" stroke-width="26" stroke-linejoin="round">80game</text>
-        <text x="340" y="152" fill="#fff2d2"
-              stroke="#fff2d2" stroke-width="11" stroke-linejoin="round">80game</text>
-        <text x="340" y="152"><tspan fill="url(#lgRed)">80</tspan><tspan fill="url(#lgGold)">game</tspan></text>
-        <text x="340" y="152" fill="url(#lgShine)">80game</text>
+        <text x="340" y="150" transform="translate(0,8)" fill="#05060e"
+              stroke="#05060e" stroke-width="20" stroke-linejoin="round">80game</text>
+        <text x="340" y="150" fill="#14141c"
+              stroke="#14141c" stroke-width="20" stroke-linejoin="round">80game</text>
+        <text x="340" y="150" fill="#fff"
+              stroke="#fff" stroke-width="10" stroke-linejoin="round">80game</text>
+        <text x="340" y="150"><tspan fill="url(#lgRed)">80</tspan><tspan fill="url(#lgGold)">game</tspan></text>
+        <text x="340" y="150" fill="url(#lgShine)">80game</text>
       </g>
     </svg></h1>
-    <svg class="wing r" viewBox="0 0 96 54" aria-hidden="true">
-      <g transform="skewY(-4)">
-        <rect x="0"  y="6"  width="96" height="11" rx="5" fill="url(#wgB)"/>
-        <rect x="0"  y="6"  width="34" height="11" rx="5" fill="url(#wgR)"/>
-        <rect x="24" y="23" width="72" height="11" rx="5" fill="url(#wgB)"/>
-        <rect x="48" y="40" width="48" height="11" rx="5" fill="url(#wgB)"/>
-      </g>
-    </svg>
+    <div class="hudBox" aria-hidden="true">
+      <span class="hudLbl yel">HI-SCORE</span>
+      <span class="hudNum">0050000</span>
+    </div>
   </div>
-  <div class="tag"><i></i>ARCADE CLASSICS COLLECTION<i></i></div>
+  <div class="tag">
+    <span class="stars"><b></b><b></b><b></b></span>
+    ARCADE CLASSICS COLLECTION
+    <span class="stars"><b></b><b></b><b></b></span>
+  </div>
 </header>
 
 <main>
