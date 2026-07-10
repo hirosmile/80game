@@ -91,6 +91,9 @@
     box-shadow:var(--shadow-dpad);
     clip-path:polygon(34% 0, 66% 0, 66% 34%, 100% 34%, 100% 66%, 66% 66%, 66% 100%, 34% 100%, 34% 66%, 0 66%, 0 34%, 34% 34%);
     transition:filter .05s; }
+  #dcross::before { content:""; position:absolute; inset:-2px; background:rgba(255,255,255,.85);
+    clip-path:polygon(34% 0, 66% 0, 66% 34%, 100% 34%, 100% 66%, 66% 66%, 66% 100%, 34% 100%, 34% 66%, 0 66%, 0 34%, 34% 34%);
+    z-index:-1; }
   .dz { position:absolute; width:44px; height:44px; z-index:2;
     pointer-events:none; }
   #d-up{left:42px;top:0;} #d-down{left:42px;bottom:0;}
@@ -106,30 +109,30 @@
   .rBtn { display:flex; flex-direction:column; align-items:center; gap:3px; }
   .rBtn small { font-size:9px; color:var(--label-sub); letter-spacing:.5px; }
   .knob { width:var(--btn-size); height:var(--btn-size); border-radius:50%;
-    background:var(--control-base); border:none; padding:0;
-    box-shadow:var(--shadow-btn);
+    background:rgba(255,255,255,.05); border:2px solid var(--knob-color,#fff); padding:0;
+    box-shadow:0 2px 6px rgba(0,0,0,.4);
     font-size:20px; font-weight:bold; letter-spacing:1px; font-family:inherit;
-    transition:filter .05s, transform .05s; }
-  #btnZap  { color:var(--label-a); }
-  #btnBlast{ color:var(--label-b); }
-  .knob.on { filter:brightness(1.4); transform:translateY(2px); }
-  #deckHome { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    width:clamp(30px,9vw,40px); height:clamp(30px,9vw,40px); border-radius:50%;
-    background:var(--control-base); box-shadow:var(--shadow-btn);
+    color:var(--knob-color,#fff);
+    transition:filter .05s, transform .05s, background .05s, color .05s; }
+  #btnZap  { --knob-color:var(--label-a); }
+  #btnBlast{ --knob-color:var(--label-b); }
+  .knob.on { transform:translateY(2px); background:var(--knob-color,#fff); color:#141414; }
+  #deckHome, #backHome { border-radius:50%;
+    background:rgba(255,255,255,.05); border:2px solid #fff;
     display:flex; align-items:center; justify-content:center;
-    font-size:clamp(14px,4vw,18px); text-decoration:none; z-index:3; }
-  #deckHome:active { filter:brightness(1.4); }
+    text-decoration:none; color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.4); }
+  #deckHome svg, #backHome svg { width:55%; height:55%; }
+  #deckHome { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:clamp(30px,9vw,40px); height:clamp(30px,9vw,40px); z-index:3; }
+  #deckHome:active { background:#fff; color:#141414; }
   /* PC (mouse / hover) : hide touch deck, letterbox-center the canvas */
   @media (hover:hover) and (pointer:fine){
     #deck { display:none; }
     #wrap { align-items:center; }
   }
   #backHome { position:fixed; top:calc(8px + env(safe-area-inset-top)); left:8px; z-index:999;
-    display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:20px;
-    background:rgba(20,10,10,.55); border:1px solid rgba(232,185,60,.4);
-    color:#e8b93c; font-family:'Courier New', monospace; font-size:11px; font-weight:bold;
-    letter-spacing:1px; text-decoration:none; backdrop-filter:blur(2px); }
-  #backHome:active { filter:brightness(1.3); }
+    width:36px; height:36px; backdrop-filter:blur(2px); }
+  #backHome:active { background:#fff; color:#141414; }
 </style>
 </head>
 <body>
@@ -143,7 +146,7 @@
     <span id="lv">SHIPS ♦♦♦</span>
   </div>
   <div id="overlay">
-    <a id="backHome" href="../">◀ 80game</a>
+    <a id="backHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
     <div id="overlayInner">
       <div class="titleHead">
         <h1 id="title">SOLBIRD</h1>
@@ -197,7 +200,7 @@
     <div class="dz" id="d-right"></div>
     <div class="dz" id="d-down"></div>
   </div>
-  <a id="deckHome" href="../">🏠</a>
+  <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
   <div id="ab">
     <div class="rBtn"><button class="knob" id="btnBlast">B</button></div>
     <div class="rBtn"><button class="knob" id="btnZap">A</button></div>
