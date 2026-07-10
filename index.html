@@ -44,16 +44,8 @@
   .wing { width:clamp(46px,9vw,92px); height:auto; flex:0 0 auto;
     filter:drop-shadow(0 0 8px rgba(70,110,255,.5)); }
   .wing.r { transform:scaleX(-1); }
-  .logo { display:flex; align-items:baseline; line-height:1;
-    font-family:"Arial Black","Avenir Next",sans-serif; font-style:italic; font-weight:900;
-    font-size:clamp(54px,12.5vw,116px); letter-spacing:-.02em; padding-right:.06em; }
-  .logo span { background-clip:text; -webkit-background-clip:text; color:transparent; }
-  .n80 {
-    background-image:linear-gradient(180deg,#ffdbe6 0%,#ff8398 28%,#f52242 55%,#8f0f1f 100%);
-    filter:drop-shadow(2px 3px 0 #14020a) drop-shadow(0 0 18px rgba(255,60,110,.55)); }
-  .ngame {
-    background-image:linear-gradient(180deg,#fff8cf 0%,#ffd75e 38%,#f5a51a 66%,#9a5a06 100%);
-    filter:drop-shadow(2px 3px 0 #140c02) drop-shadow(0 0 18px rgba(255,195,60,.5)); }
+  .logoSvg { width:clamp(280px,54vw,620px); height:auto; overflow:visible;
+    filter:drop-shadow(0 0 26px rgba(255,120,40,.28)); }
   .tag { margin-top:14px; display:flex; align-items:center; justify-content:center;
     gap:clamp(10px,2vw,18px);
     font-size:clamp(11px,2.2vw,15px); font-weight:bold; letter-spacing:.42em;
@@ -147,6 +139,10 @@
     .cab::before { display:none; }
     main { padding:18px 20px 6px; gap:20px; }
   }
+  @media (max-width:560px) {
+    .wing { display:none; }
+    .logoSvg { width:min(86vw,420px); }
+  }
   @media (max-width:480px) {
     .tag { font-size:10px; letter-spacing:.26em; gap:8px; padding-left:.26em; }
     .tag i { width:24px; }
@@ -176,7 +172,38 @@
         <rect x="48" y="40" width="48" height="11" rx="5" fill="url(#wgB)"/>
       </g>
     </svg>
-    <h1 class="logo"><span class="n80">80</span><span class="ngame">game</span></h1>
+    <h1 style="line-height:0; margin:0;"><svg class="logoSvg" viewBox="0 0 680 200" role="img" aria-label="80game">
+      <defs>
+        <linearGradient id="lgRed" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="#ff9d85"/>
+          <stop offset=".36" stop-color="#f43b25"/>
+          <stop offset=".6"  stop-color="#d81a12"/>
+          <stop offset="1"   stop-color="#9e0d0d"/>
+        </linearGradient>
+        <linearGradient id="lgGold" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="#fff3a6"/>
+          <stop offset=".36" stop-color="#ffcf3d"/>
+          <stop offset=".6"  stop-color="#ffae10"/>
+          <stop offset="1"   stop-color="#d97e00"/>
+        </linearGradient>
+        <linearGradient id="lgShine" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0"   stop-color="#fff" stop-opacity=".8"/>
+          <stop offset=".42" stop-color="#fff" stop-opacity=".1"/>
+          <stop offset=".48" stop-color="#fff" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g font-family="'Arial Black','Avenir Next',sans-serif" font-weight="900"
+         font-size="130" letter-spacing="-4" text-anchor="middle">
+        <text x="340" y="152" transform="translate(0,9)" fill="#000" opacity=".45"
+              stroke="#000" stroke-width="26" stroke-linejoin="round">80game</text>
+        <text x="340" y="152" fill="#2a0a04"
+              stroke="#2a0a04" stroke-width="26" stroke-linejoin="round">80game</text>
+        <text x="340" y="152" fill="#fff2d2"
+              stroke="#fff2d2" stroke-width="11" stroke-linejoin="round">80game</text>
+        <text x="340" y="152"><tspan fill="url(#lgRed)">80</tspan><tspan fill="url(#lgGold)">game</tspan></text>
+        <text x="340" y="152" fill="url(#lgShine)">80game</text>
+      </g>
+    </svg></h1>
     <svg class="wing r" viewBox="0 0 96 54" aria-hidden="true">
       <g transform="skewY(-4)">
         <rect x="0"  y="6"  width="96" height="11" rx="5" fill="url(#wgB)"/>
