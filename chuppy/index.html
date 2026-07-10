@@ -20,35 +20,42 @@
   #cv{image-rendering:pixelated;background:#000;display:block}
   /* ---- controller deck ---- */
   #deck{flex:0 0 auto;background:#8f0f13;border-top:4px solid #5c0a0d;
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;align-items:center;justify-content:space-between;position:relative;
     padding:12px 18px calc(12px + env(safe-area-inset-bottom));}
   #dpad{position:relative;width:128px;height:128px}
-  #dcross{position:absolute;inset:8px;background:#1c1c1e;border-radius:6px;
-    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%);
-    box-shadow:inset 0 -4px 0 rgba(0,0,0,.5)}
+  #dcross{position:absolute;inset:8px;background:rgba(255,255,255,.85);border-radius:6px;
+    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
+  #dcross::after{content:"";position:absolute;inset:2px;background:#000;
+    clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
   .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
   #dL{left:0}#dR{right:0}
   .dz.on ~ #dcross{filter:brightness(1.25)}
   #btns{display:flex;align-items:center;gap:12px}
-  .ab{width:64px;height:64px;border-radius:50%;background:#1c1c1e;color:#e8b93c;
+  .ab{width:64px;height:64px;border-radius:50%;background:#000;
+    border:2px solid #e8b93c;color:#e8b93c;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-weight:bold;font-size:20px;letter-spacing:1px;
-    box-shadow:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4)}
-  #bB{color:#7ec8ff}
+    box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  #bB{border-color:#7ec8ff;color:#7ec8ff}
   .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
-  .ab.on{filter:brightness(1.4);transform:translateY(2px)}
+  .ab.on{transform:translateY(2px);background:#e8b93c;color:#141414}
+  #bB.on{background:#7ec8ff}
+  #deckHome,#backHome{border-radius:50%;background:#000;border:2px solid #fff;
+    display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;
+    box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  #deckHome svg,#backHome svg{width:55%;height:55%}
+  #deckHome{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:clamp(30px,9vw,40px);height:clamp(30px,9vw,40px);z-index:3}
+  #deckHome:active{background:#fff;color:#141414}
   /* PC (mouse / hover) : hide touch deck so the game uses full height */
   @media (hover:hover) and (pointer:fine){ #deck{ display:none; } }
   #backHome { position:fixed; top:calc(8px + env(safe-area-inset-top)); left:8px; z-index:999;
-    display:flex; align-items:center; gap:5px; padding:6px 11px; border-radius:20px;
-    background:rgba(20,10,10,.55); border:1px solid rgba(232,185,60,.4);
-    color:#e8b93c; font-family:monospace; font-size:11px; font-weight:bold;
-    letter-spacing:1px; text-decoration:none; backdrop-filter:blur(2px); }
-  #backHome:active { filter:brightness(1.3); }
+    width:36px; height:36px; backdrop-filter:blur(2px); }
+  #backHome:active { background:#fff; color:#141414; }
 </style>
 </head>
 <body>
-<a id="backHome" href="../">◀ 80game</a>
+<a id="backHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
 <script>document.addEventListener('keydown', e => { if(e.key === 'Escape') location.href = '../'; });</script>
 <div id="wrap">
   <div id="stage"><canvas id="cv" width="256" height="368"></canvas></div>
@@ -58,6 +65,7 @@
       <div class="dz" id="dR"></div>
       <div id="dcross"></div>
     </div>
+    <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
     <div id="btns">
       <div class="ab" id="bB">B</div>
       <div class="ab" id="bA">A</div>
