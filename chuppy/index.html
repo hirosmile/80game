@@ -49,6 +49,7 @@
 </head>
 <body>
 <a id="backHome" href="../">◀ 80game</a>
+<script>document.addEventListener('keydown', e => { if(e.key === 'Escape') location.href = '../'; });</script>
 <div id="wrap">
   <div id="stage"><canvas id="cv" width="256" height="368"></canvas></div>
   <div id="deck">
@@ -112,6 +113,7 @@ const CATSPAWN=[
 ];
 
 // ---------- canvas ----------
+const backHomeEl=document.getElementById('backHome');
 const cv=document.getElementById('cv'), ctx=cv.getContext('2d');
 ctx.imageSmoothingEnabled=false;
 let RS=2; // 内部レンダリング倍率(整数)= ピクセルパーフェクト維持
@@ -1001,6 +1003,7 @@ function drawLife(x,y){
 }
 function draw(){
   ctx.setTransform(RS,0,0,RS,0,0);   // 論理座標→整数倍バッキングへ
+  backHomeEl.style.display = state==='title' ? '' : 'none';
   if(state==='title'){ drawTitle(); return; }
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   const camX=Math.max(0,Math.min(WORLD-W,player.x-W/2));
