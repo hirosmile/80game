@@ -22,47 +22,80 @@
     text-shadow:0 0 6px rgba(255,220,120,.6); pointer-events:none; letter-spacing:1px; }
   #hud .hi { color:#ff5a5a; }
   #overlay { position:absolute; inset:0; display:flex; flex-direction:column;
-    background:rgba(5,8,15,.92); overflow-y:auto; -webkit-overflow-scrolling:touch; }
+    overflow-y:auto; -webkit-overflow-scrolling:touch;
+    background-color:#0a0c1e;
+    background-image:
+      radial-gradient(1.5px 1.5px at 40px 60px,  rgba(255,255,255,.6),  transparent 55%),
+      radial-gradient(1px 1px     at 180px 140px, rgba(160,190,255,.5), transparent 55%),
+      radial-gradient(1.5px 1.5px at 300px 40px,  rgba(200,160,255,.45),transparent 55%),
+      radial-gradient(1px 1px     at 90px 250px,  rgba(255,255,255,.35),transparent 55%),
+      repeating-linear-gradient(0deg,  rgba(110,120,220,.055) 0 1px, transparent 1px 46px),
+      repeating-linear-gradient(90deg, rgba(110,120,220,.055) 0 1px, transparent 1px 46px),
+      linear-gradient(180deg, #10122c 0%, #0a0c1e 55%, #090a18 100%);
+    background-size:360px 300px, 360px 300px, 360px 300px, 360px 300px, auto, auto, auto;
+    box-shadow:inset 0 0 120px rgba(0,0,10,.8); }
   #overlayInner { margin:auto; display:flex; flex-direction:column;
-    align-items:center; gap:22px; width:100%; max-width:400px;
+    align-items:center; gap:24px; width:100%; max-width:420px;
     box-sizing:border-box; padding:34px 24px; text-align:center; color:#e8e8d0; }
-  .titleHead { display:flex; flex-direction:column; align-items:center; gap:8px; }
-  #overlay h1 { font-size:44px; letter-spacing:9px; line-height:1; color:#7dff9e;
-    text-shadow:0 0 18px rgba(125,255,158,.75), 3px 3px 0 #14532d; }
+  .titleHead { display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .logoRowS { display:flex; align-items:center; justify-content:center; gap:6px; }
+  .wingG { width:clamp(40px,11vw,58px); height:auto; flex:0 0 auto;
+    filter:drop-shadow(0 0 8px rgba(255,215,120,.35)); }
+  .wingG.r { transform:scaleX(-1); }
+  #overlay h1 { margin:0; line-height:0; }
+  .solLogo { width:clamp(210px,58vw,300px); height:auto; overflow:visible;
+    filter:drop-shadow(0 0 22px rgba(80,220,170,.25)); }
   #overlay .histitle { font-size:16px; font-weight:bold; letter-spacing:3px;
     color:#ffd76a; text-shadow:0 0 10px rgba(255,215,106,.45); }
   #overlay p { font-size:13px; line-height:1.85; color:#b8c4b8; max-width:340px; margin:0; }
   .titleFoot { display:flex; flex-direction:column; align-items:center; gap:9px; }
-  #overlay .pushstart { font-size:20px; font-weight:bold; letter-spacing:5px;
-    color:#ff5a6e; font-family:inherit; cursor:pointer;
-    text-shadow:0 0 12px rgba(255,90,110,.7);
+  #overlay .pushstart { font-size:24px; font-weight:bold; letter-spacing:.38em;
+    color:#ff4b47; font-family:inherit; cursor:pointer; padding-left:.38em;
+    text-shadow:0 3px 0 #58100e, 0 0 18px rgba(255,75,71,.55);
     animation:blink 1.05s steps(1,end) infinite; }
   @keyframes blink { 50% { opacity:0; } }
   #overlay .startsub { font-size:9px; letter-spacing:2px; color:#8a90a8; }
-  #overlay .credit { font-size:9px; letter-spacing:2px; color:#4a5170; }
+  #overlay .credit { font-size:9px; letter-spacing:2px; color:#5a6390; }
   #overlay .score-line { font-size:20px; color:#ffd76a; letter-spacing:2px; }
-  .sec-h { font-size:12px; letter-spacing:3px; color:#7dff9e; font-weight:bold;
-    border-bottom:1px solid rgba(125,255,158,.35); padding-bottom:4px;
-    margin:0; width:100%; }
+  .sec-h { display:flex; align-items:center; gap:14px; width:100%;
+    font-size:12px; letter-spacing:.38em; font-weight:bold; margin:0;
+    color:#7dffc8; text-shadow:0 0 10px rgba(125,255,200,.4); padding-left:.38em; }
+  .sec-h::before, .sec-h::after { content:""; flex:1; height:1px; }
+  .sec-h::before { background:linear-gradient(90deg, transparent, rgba(125,255,200,.45)); }
+  .sec-h::after  { background:linear-gradient(90deg, rgba(125,255,200,.45), transparent); }
+  .titleInfo .sec-h.gold { color:#ffd75e; text-shadow:0 0 10px rgba(255,215,94,.4); }
+  .titleInfo .sec-h.gold::before { background:linear-gradient(90deg, transparent, rgba(255,215,94,.45)); }
+  .titleInfo .sec-h.gold::after  { background:linear-gradient(90deg, rgba(255,215,94,.45), transparent); }
   .titleInfo { display:flex; flex-direction:column; align-items:center;
-    gap:13px; width:100%; }
+    gap:14px; width:100%; }
   .purpose { font-size:12.5px; line-height:1.8; color:#cdd6cd; max-width:340px; }
-  .foeShow { display:flex; align-items:center; gap:14px;
-    width:100%; max-width:360px; min-height:104px;
-    background:rgba(20,40,30,.4); border:1px solid rgba(125,255,158,.25);
-    border-radius:8px; padding:12px 14px; cursor:pointer; }
+  /* 敵図鑑：メタルフレームパネル（LEDインジケータ付き） */
+  .foeShow { position:relative; display:flex; align-items:center; gap:14px;
+    width:calc(100% - 12px); max-width:368px; min-height:110px;
+    background:linear-gradient(180deg, rgba(16,28,22,.95), rgba(9,17,13,.95));
+    border-radius:12px; padding:14px 16px; cursor:pointer;
+    box-shadow:
+      0 0 0 3px #5d6a55, 0 0 0 5px #262e22,
+      inset 0 1px 0 rgba(255,255,255,.08), inset 0 0 22px rgba(20,60,40,.45),
+      0 8px 20px rgba(0,0,0,.55); }
+  .foeShow::before, .foeShow::after { content:""; position:absolute; top:-6px;
+    width:16px; height:6px; border-radius:3px; }
+  .foeShow::before { left:16px; background:#ff4b47;
+    box-shadow:0 0 7px rgba(255,75,71,.8), inset 0 1px 1px rgba(255,255,255,.4); }
+  .foeShow::after  { right:16px; background:#5dff8e;
+    box-shadow:0 0 7px rgba(93,255,142,.8), inset 0 1px 1px rgba(255,255,255,.4); }
   #foeCv { width:96px; height:96px; flex:0 0 auto; image-rendering:pixelated;
-    background:radial-gradient(circle at 50% 45%, #1a2a20, #0a1410);
-    border-radius:6px; }
+    background:radial-gradient(circle at 50% 45%, #1c2f24, #0a1410);
+    border-radius:10px; box-shadow:0 0 0 2px #38463a, inset 0 0 14px rgba(0,0,0,.6); }
   .foeMeta { text-align:left; flex:1 1 auto; }
   .foeName { font-size:15px; font-weight:bold; color:#f0e7d0; letter-spacing:1px; }
   #foeTag { font-size:10px; }
   .foePt { font-size:11px; color:#ffd76a; margin:2px 0 5px; letter-spacing:1px; }
   .foeDesc { font-size:11.5px; line-height:1.5; color:#c6cec6; }
-  .foeDots { display:flex; gap:6px; justify-content:center; }
+  .foeDots { display:flex; gap:7px; justify-content:center; }
   .foeDots i { width:7px; height:7px; border-radius:50%;
-    background:rgba(255,255,255,.25); display:block; transition:background .2s; }
-  .foeDots i.on { background:#7dff9e; }
+    background:rgba(255,255,255,.22); display:block; transition:background .2s, box-shadow .2s; }
+  .foeDots i.on { background:#5dff8e; box-shadow:0 0 8px rgba(93,255,142,.9); }
   .foeHint { font-size:9px; color:#6a8a76; letter-spacing:1px; }
   .tag-air { color:#7ec8ff; } .tag-gnd { color:#ff9c6a; }
   .hidden { display:none !important; }
@@ -153,7 +186,61 @@
     <a id="backHome" href="../">◀ 80game</a>
     <div id="overlayInner">
       <div class="titleHead">
-        <h1 id="title">SOLBIRD</h1>
+        <div class="logoRowS">
+          <svg class="wingG" viewBox="0 0 80 66" aria-hidden="true">
+            <defs>
+              <linearGradient id="wgGold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffe9a8"/><stop offset="1" stop-color="#b8862e"/>
+              </linearGradient>
+            </defs>
+            <g fill="url(#wgGold)" stroke="#3a2a10" stroke-width="1.5">
+              <rect x="0"  y="2"  width="78" height="10" rx="5" transform="rotate(-13 40 7)"/>
+              <rect x="8"  y="24" width="64" height="10" rx="5" transform="rotate(-7 40 29)"/>
+              <rect x="18" y="46" width="50" height="10" rx="5" transform="rotate(-2 40 51)"/>
+            </g>
+          </svg>
+          <h1 id="title"><svg class="solLogo" viewBox="0 0 560 130" role="img" aria-label="SOLBIRD">
+            <defs>
+              <linearGradient id="slJade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0"   stop-color="#eafff2"/>
+                <stop offset=".32" stop-color="#8fe8c0"/>
+                <stop offset=".62" stop-color="#2e9e78"/>
+                <stop offset="1"   stop-color="#14684e"/>
+              </linearGradient>
+              <linearGradient id="slGem" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0"   stop-color="#f0fffd"/>
+                <stop offset=".45" stop-color="#7fe9df"/>
+                <stop offset="1"   stop-color="#128f80"/>
+              </linearGradient>
+              <linearGradient id="slGold" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#ffe9a8"/><stop offset="1" stop-color="#a8781e"/>
+              </linearGradient>
+              <linearGradient id="slShine" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff" stop-opacity=".65"/>
+                <stop offset=".44" stop-color="#fff" stop-opacity=".08"/>
+                <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            <g font-family="'Arial Black','Avenir Next',sans-serif" font-weight="900"
+               font-size="84" letter-spacing="1" text-anchor="middle">
+              <text x="280" y="96" transform="translate(0,6)" fill="#02080a"
+                    stroke="#02080a" stroke-width="16" stroke-linejoin="round" opacity=".8">SOLBIRD</text>
+              <text x="280" y="96" fill="#061410"
+                    stroke="#061410" stroke-width="16" stroke-linejoin="round">SOLBIRD</text>
+              <text x="280" y="96" fill="url(#slGold)"
+                    stroke="url(#slGold)" stroke-width="7" stroke-linejoin="round">SOLBIRD</text>
+              <text x="280" y="96"><tspan fill="url(#slJade)">S</tspan><tspan fill="url(#slGem)">O</tspan><tspan fill="url(#slJade)">LBIRD</tspan></text>
+              <text x="280" y="96" fill="url(#slShine)">SOLBIRD</text>
+            </g>
+          </svg></h1>
+          <svg class="wingG r" viewBox="0 0 80 66" aria-hidden="true">
+            <g fill="url(#wgGold)" stroke="#3a2a10" stroke-width="1.5">
+              <rect x="0"  y="2"  width="78" height="10" rx="5" transform="rotate(-13 40 7)"/>
+              <rect x="8"  y="24" width="64" height="10" rx="5" transform="rotate(-7 40 29)"/>
+              <rect x="18" y="46" width="50" height="10" rx="5" transform="rotate(-2 40 51)"/>
+            </g>
+          </svg>
+        </div>
         <div class="histitle" id="hiTitle">HI-SCORE 20000</div>
       </div>
       <div class="titleInfo">
@@ -167,7 +254,7 @@
       </div>
       <div class="score-line hidden" id="finalScore"></div>
       <div class="titleInfo">
-        <div class="sec-h">ENEMY GUIDE</div>
+        <div class="sec-h gold">ENEMY GUIDE</div>
         <div class="foeShow">
           <canvas id="foeCv" width="96" height="96"></canvas>
           <div class="foeMeta">
@@ -510,11 +597,6 @@ function startGame(){
   groundObjs = []; popups = []; allies = []; allyShots = [];
   resetForSpawn(false);
   state = 'play';
-  const ttl = document.getElementById('title');
-  ttl.textContent = 'SOLBIRD';
-  ttl.style.color = '#7dff9e';
-  ttl.style.textShadow = '0 0 18px rgba(125,255,158,.8), 3px 3px 0 #14532d';
-  ttl.style.fontSize = '42px';
   document.querySelectorAll('.titleInfo').forEach(e => e.classList.remove('hidden'));
   document.getElementById('finalScore').classList.add('hidden');
   document.getElementById('startBtn').textContent = 'PUSH START';
