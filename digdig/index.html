@@ -50,12 +50,14 @@
   }
   #deck{
     flex:0 0 auto;
-    padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+    padding:6px 18px calc(10px + env(safe-area-inset-bottom));
     background:var(--deck-bg);
     border-top:4px solid var(--deck-edge);
-    display:flex;align-items:center;justify-content:space-between;
+    display:flex;flex-direction:column;gap:2px;
     position:relative;
   }
+  #deckTop{display:flex;justify-content:center;}
+  #deckMain{display:flex;align-items:center;justify-content:space-between;}
   /* 方向キー */
   #dpad{
     position:relative;width:var(--dpad-size);height:var(--dpad-size);
@@ -96,13 +98,15 @@
   #bB{--ab-accent:var(--label-b);border-color:var(--label-b);color:var(--label-b);}
   #bA{--ab-accent:var(--label-a);border-color:var(--label-a);color:var(--label-a);}
   .ab small{font-size:9px;color:var(--label-sub);font-weight:normal;letter-spacing:0;margin-top:2px;}
-  #deckHome{border-radius:50%;background:#000;border:2px solid #fff;
-    display:flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;
-    box-shadow:0 2px 6px rgba(0,0,0,.4);
-    position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
-    width:clamp(30px,9vw,40px);height:clamp(30px,9vw,40px);z-index:3;}
-  #deckHome svg{width:55%;height:55%;}
-  #deckHome:active{background:#fff;color:#141414;}
+  #deckHome{border-radius:50%;width:28px;height:28px;
+    background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.5);
+    display:flex;align-items:center;justify-content:center;
+    text-decoration:none;color:rgba(255,255,255,.85);
+    transition:transform .12s ease-out, box-shadow .12s ease-out,
+      border-color .12s ease-out, background-color .12s ease-out, color .12s ease-out;}
+  #deckHome svg{width:52%;height:52%;}
+  #deckHome:active{transform:scale(.86);background:rgba(255,255,255,.18);
+    border-color:#fff;color:#fff;box-shadow:0 0 0 6px rgba(255,255,255,.12);}
   /* ===== タイトルオーバーレイ ===== */
   #title{
     position:fixed;inset:0;z-index:20;
@@ -173,6 +177,10 @@
 </div>
 
 <div id="deck">
+  <div id="deckTop">
+    <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
+  </div>
+  <div id="deckMain">
   <div id="dpad">
     <div id="dcross"><div id="dcrossFill"></div></div>
     <div class="dz" id="dU"></div>
@@ -180,10 +188,10 @@
     <div class="dz" id="dL"></div>
     <div class="dz" id="dR"></div>
   </div>
-  <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
   <div id="btns">
     <button class="ab" id="bB" aria-label="ポンプ">B</button>
     <button class="ab" id="bA" aria-label="モリ">A</button>
+  </div>
   </div>
 </div>
 
