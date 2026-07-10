@@ -1347,6 +1347,7 @@ function draw(){
 
 // ---------- title / game over (専用画面) ----------
 const LOGO_COL=['#ff4136','#ff9f40','#ffe66d','#2ecc40','#3ad0ff','#a06cff'];
+const LOGO_IMG=new Image(); LOGO_IMG.src='../chuppy-logo.png';
 function drawLogo(text,cx,cy,size){
   ctx.font='bold '+size+'px monospace'; ctx.textBaseline='alphabetic';
   const widths=[...text].map(ch=>ctx.measureText(ch).width);
@@ -1363,7 +1364,17 @@ function drawLogo(text,cx,cy,size){
 function drawTitle(){
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   ctx.textAlign='center';
-  drawLogo('CHUPPY',W/2,72,30);
+  if(LOGO_IMG.complete&&LOGO_IMG.naturalWidth){
+    const lw=216, lh=lw*LOGO_IMG.naturalHeight/LOGO_IMG.naturalWidth;
+    ctx.save();
+    ctx.imageSmoothingEnabled=true;
+    ctx.imageSmoothingQuality='high';
+    ctx.drawImage(LOGO_IMG,W/2-lw/2,58-lh/2,lw,lh);
+    ctx.restore();
+    ctx.imageSmoothingEnabled=false;
+  }else{
+    drawLogo('CHUPPY',W/2,72,30);
+  }
   // タイトル直下にハイスコアを大きく
   ctx.fillStyle='#f33'; ctx.font='bold 13px monospace';
   ctx.fillText('HI SCORE '+(''+hi).padStart(7,'0'),W/2,98);
