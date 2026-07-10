@@ -210,6 +210,7 @@ const LAYER_DK=["#E09820","#C86000","#A03800","#601C10"];
 const TUNNEL="#000000";
 
 // ---------- DOM ----------
+const backHomeEl=document.getElementById("backHome");
 const cv=document.getElementById("cv");
 const ctx=cv.getContext("2d");
 const titleEl=document.getElementById("title");
@@ -1245,6 +1246,7 @@ function fillExtra(){
 }
 function render(){
   ctx.imageSmoothingEnabled=false;
+  backHomeEl.style.display = G.mode==="title" ? "" : "none";
   fillExtra();
   if(G.mode==="title"){drawTitle();return;}
   if(G.mode==="inter"){
