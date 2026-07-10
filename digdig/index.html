@@ -42,21 +42,21 @@
   }
   /* ===== コントロールデッキ（CHUPPY デザインシステム）===== */
   :root{
-    --deck-bg:#8f0f13; --deck-edge:#5c0a0d; --control-base:#1c1c1e;
+    --deck-bg:#5c0d10; --deck-edge:#3a0709; --control-base:#1c1c1e;
     --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#cc9999;
-    --btn-size:64px; --btn-gap:12px; --dpad-size:128px;
+    --btn-size:56px; --btn-gap:12px; --dpad-size:112px;
     --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
     --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
   }
   #deck{
     flex:0 0 auto;
-    padding:6px 18px calc(10px + env(safe-area-inset-bottom));
+    padding:4px 18px calc(8px + env(safe-area-inset-bottom));
     background:var(--deck-bg);
     border-top:4px solid var(--deck-edge);
     display:flex;flex-direction:column;gap:2px;
     position:relative;
   }
-  #deckTop{display:flex;justify-content:center;}
+  #deckTop{display:flex;justify-content:flex-end;}
   #deckMain{display:flex;align-items:center;justify-content:space-between;}
   /* 方向キー */
   #dpad{
@@ -69,7 +69,7 @@
     clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);
     transition:filter .05s;
   }
-  #dcrossFill{position:absolute;inset:2px;background:#000;
+  #dcrossFill{position:absolute;inset:2px;background:#242424;
     clip-path:polygon(36% 0,64% 0,64% 36%,100% 36%,100% 64%,64% 64%,64% 100%,36% 100%,36% 64%,0 64%,0 36%,36% 36%);}
   #dcross.on{filter:brightness(1.25);}
   #dcross::after{                    /* 中央のくぼみ */
@@ -88,7 +88,7 @@
   .ab{
     width:var(--btn-size);height:var(--btn-size);border-radius:50%;
     background:#000;border:2px solid #fff;
-    box-shadow:0 2px 6px rgba(0,0,0,.4);
+    box-shadow:0 1px 3px rgba(0,0,0,.22);
     font-family:monospace;font-size:20px;font-weight:bold;letter-spacing:1px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     line-height:1;transition:transform .05s, background .05s, color .05s;

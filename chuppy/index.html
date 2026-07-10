@@ -19,25 +19,25 @@
   #stage{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0}
   #cv{image-rendering:pixelated;background:#000;display:block}
   /* ---- controller deck ---- */
-  #deck{flex:0 0 auto;background:#8f0f13;border-top:4px solid #5c0a0d;
+  #deck{flex:0 0 auto;background:#5c0d10;border-top:4px solid #3a0709;
     display:flex;flex-direction:column;gap:2px;position:relative;
-    padding:6px 18px calc(10px + env(safe-area-inset-bottom));}
-  #deckTop{display:flex;justify-content:center}
+    padding:4px 18px calc(8px + env(safe-area-inset-bottom));}
+  #deckTop{display:flex;justify-content:flex-end}
   #deckMain{display:flex;align-items:center;justify-content:space-between}
-  #dpad{position:relative;width:128px;height:128px}
+  #dpad{position:relative;width:112px;height:112px}
   #dcross{position:absolute;inset:8px;background:rgba(255,255,255,.85);border-radius:6px;
     clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
-  #dcross::after{content:"";position:absolute;inset:2px;background:#000;
+  #dcross::after{content:"";position:absolute;inset:2px;background:#242424;
     clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
   .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
   #dL{left:0}#dR{right:0}
   .dz.on ~ #dcross{filter:brightness(1.25)}
   #btns{display:flex;align-items:center;gap:12px}
-  .ab{width:64px;height:64px;border-radius:50%;background:#000;
+  .ab{width:56px;height:56px;border-radius:50%;background:#000;
     border:2px solid #e8b93c;color:#e8b93c;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     font-weight:bold;font-size:20px;letter-spacing:1px;
-    box-shadow:0 2px 6px rgba(0,0,0,.4)}
+    box-shadow:0 1px 3px rgba(0,0,0,.22)}
   #bB{border-color:#7ec8ff;color:#7ec8ff}
   .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
   .ab.on{transform:translateY(2px);background:#e8b93c;color:#141414}
