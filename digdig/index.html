@@ -249,10 +249,38 @@
    ・原作仕様準拠: 移動中のみBGM / 破裂音=高速音階 / 残1匹逃走
    ========================================================= */
 (function(){
-const TILE=16, COLS=14, ROWS=18, W=COLS*TILE, H=ROWS*TILE;
-const F=8, FCOLS=COLS*2, FROWS=ROWS*2;      // 微細セル
+const TILE=16, COLS=14, ROWS=18, W=COLS*TILE, H=ROWS*TILE;   // ROWS/H＝ビューポート(画面)
+const MAPROWS=44, MAPH=MAPROWS*TILE;                          // ワールド(縦長・スクロール対象)
+const F=8, FCOLS=COLS*2, FROWS=MAPROWS*2;      // 微細セル（ワールド全体）
 const SKY=2;                                 // 上2段=空/地表
 const START_C=6, START_R=9;
+// ---------- 追従カメラ ----------
+const HUD_H=24;                              // 画面上部のHUD高さ（プレイ領域から除外）
+const ANCHOR_Y=Math.round(HUD_H+(H-HUD_H)*0.40);   // プレイヤーを画面上から約40%に維持
+const DZ_Y=Math.round((H-HUD_H)*0.10/2);           // 縦デッドゾーン(半分)
+const LOOK_Y=44;                             // 下方向の先読み量(px)（この画面高では強すぎない値に）
+const camera={x:0,y:0,laY:0};
+function camClampY(y){return Math.max(0,Math.min(MAPH-H,y));}
+function resetCamera(){
+  if(!player){camera.y=0;camera.laY=0;return;}
+  camera.y=camClampY(player.y-ANCHOR_Y);
+  camera.laY=0;
+}
+function updateCamera(){
+  if(!player)return;
+  // 下方向の先読み（滑らかに出し入れ）
+  const laTarget=(player.dir==="down"&&player.moving)?LOOK_Y:0;
+  camera.laY+=(laTarget-camera.laY)*0.10;
+  // デッドゾーン：プレイヤーがバンドを出た時だけ目標を更新
+  const pScreen=player.y-camera.y;
+  let tY=camera.y;
+  if(pScreen<ANCHOR_Y-DZ_Y)tY=player.y-(ANCHOR_Y-DZ_Y);
+  else if(pScreen>ANCHOR_Y+DZ_Y)tY=player.y-(ANCHOR_Y+DZ_Y);
+  tY=camClampY(tY+camera.laY);
+  // 滑らかな追従
+  camera.y+=(tY-camera.y)*0.15;
+  camera.y=camClampY(camera.y);
+}
 
 // ---------- カラー ----------
 const LAYERS=["#F8B838","#E87800","#C84800","#7C2818"];
@@ -268,10 +296,10 @@ const startBtn=document.getElementById("startBtn");
 const finalEl=document.getElementById("finalScore");
 
 // オフスクリーン（地層・トンネル）
-function mkCanvas(){const c=document.createElement("canvas");c.width=W;c.height=H;return c;}
-const dirtCv=mkCanvas(), dirtCtx=dirtCv.getContext("2d");
-const tunCv=mkCanvas(),  tunCtx=tunCv.getContext("2d");
-const edgeCv=mkCanvas(), edgeCtx=edgeCv.getContext("2d");   // トンネル縁取り用
+function mkCanvas(h){const c=document.createElement("canvas");c.width=W;c.height=h||H;return c;}
+const dirtCv=mkCanvas(MAPH), dirtCtx=dirtCv.getContext("2d");   // 地層（ワールド全体）
+const tunCv=mkCanvas(MAPH),  tunCtx=tunCv.getContext("2d");     // 掘った通路（ワールド全体）
+const edgeCv=mkCanvas(H), edgeCtx=edgeCv.getContext("2d");      // トンネル縁取り（可視域のみ）
 
 // ---------- 状態 ----------
 const G={mode:"title", round:1, score:0, hi:10000, lives:3, timer:0,
@@ -491,7 +519,7 @@ function jagEdges(x0,y0,x1,y1){
   tunCtx.fillStyle=TUNNEL;
   for(let x=Math.floor(x0/4)*4;x<x1;x+=4){   // 上下の縁
     if(y0>SKY*TILE&&jagHash(x,y0))tunCtx.fillRect(x,Math.max(SKY*TILE,y0-t),3,t);
-    if(y1<H&&jagHash(x,y1))tunCtx.fillRect(x,y1,3,t);
+    if(y1<MAPH&&jagHash(x,y1))tunCtx.fillRect(x,y1,3,t);
   }
   for(let y=Math.floor(y0/4)*4;y<y1;y+=4){   // 左右の縁
     if(y<SKY*TILE)continue;
@@ -504,7 +532,7 @@ function carveTile(c,r){carveRect(c*TILE+1,r*TILE+1,c*TILE+TILE-1,r*TILE+TILE-1)
   // 微細セルはタイル全体を開放
   for(let fy=r*2;fy<r*2+2;fy++)for(let fx=c*2;fx<c*2+2;fx++)setDug(fx,fy);}
 function tileOpen(c,r){                        // 敵が通行できる完全開通タイルか
-  if(c<0||c>=COLS||r<1||r>=ROWS)return false;
+  if(c<0||c>=COLS||r<1||r>=MAPROWS)return false;
   if(r<SKY)return r===1;
   return dugAt(c*2,r*2)&&dugAt(c*2+1,r*2)&&dugAt(c*2,r*2+1)&&dugAt(c*2+1,r*2+1);
 }
@@ -514,27 +542,28 @@ const DIRS={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
 const OPP={up:"down",down:"up",left:"right",right:"left"};
 function newRound(){
   dug=new Uint8Array(FCOLS*FROWS);
-  tunCtx.clearRect(0,0,W,H);
-  // 地層描画
-  dirtCtx.clearRect(0,0,W,H);
-  for(let L=0;L<4;L++){
-    const y=(SKY+L*4)*TILE;
-    dirtCtx.fillStyle=LAYERS[L];dirtCtx.fillRect(0,y,W,4*TILE);
-    dirtCtx.fillStyle=LAYER_DK[L];
+  tunCtx.clearRect(0,0,W,MAPH);
+  // 地層描画（ワールド全体・繰り返す地層バンドで深さを表現）
+  dirtCtx.clearRect(0,0,W,MAPH);
+  const bands=Math.ceil((MAPROWS-SKY)/4);
+  for(let L=0;L<bands;L++){
+    const y=(SKY+L*4)*TILE, ci=L%4;
+    dirtCtx.fillStyle=LAYERS[ci];dirtCtx.fillRect(0,y,W,4*TILE);
+    dirtCtx.fillStyle=LAYER_DK[ci];
     for(let ry=0;ry<4*TILE;ry+=4)
       for(let rx=((ry/4)%2)*4;rx<W;rx+=8)
         dirtCtx.fillRect(rx,y+ry,3,1);
   }
-  // 敵ポケット
+  // 敵ポケット（縦長マップ全体に分散）
   enemies=[];rocks=[];veg=null;popups=[];parts=[];harpoon=null;
   G.rocksDropped=0;G.roundTime=0;G.speedLv=0;
-  const n=Math.min(2+G.round,8);   // R1:3 R2:4 … R6:8
+  const n=Math.min(4+G.round,12);   // R1:5 … R8+:12（縦長マップ向けに増量）
   const used=[];
   let guard=0;
-  while(enemies.length<n&&guard++<400){
+  while(enemies.length<n&&guard++<800){
     const horiz=rnd()<0.7;
     const len=ri(3,4);
-    const c=ri(1,horiz?COLS-2-len:COLS-2), r=ri(3,horiz?ROWS-2:ROWS-2-len);
+    const c=ri(1,horiz?COLS-2-len:COLS-2), r=ri(4,horiz?MAPROWS-2:MAPROWS-2-len);
     const mid=Math.floor(len/2);
     const ec=c+(horiz?mid:0), er=r+(horiz?0:mid);
     let bad=false;
@@ -552,16 +581,17 @@ function newRound(){
     const gabura=enemies.length<Math.max(1,Math.floor(n/3));
     enemies.push(mkEnemy(gabura?"gabura":"fuwan",ec*TILE+8,er*TILE+8));
   }
-  // 岩
-  const nr=ri(4,6);guard=0;
-  while(rocks.length<nr&&guard++<300){
-    const c=ri(1,COLS-2),r=ri(3,ROWS-3);
+  // 岩（縦長マップ向けに増量）
+  const nr=ri(7,11);guard=0;
+  while(rocks.length<nr&&guard++<600){
+    const c=ri(1,COLS-2),r=ri(4,MAPROWS-3);
     if(tileOpen(c,r)||tileOpen(c,r+1))continue;
     if(c===START_C&&r<=START_R+1)continue;
     if(rocks.some(k=>Math.abs(k.c-c)<2&&Math.abs(k.r-r)<2))continue;
     rocks.push({c,r,x:c*TILE+8,y:r*TILE+8,state:"idle",t:0,fellFrom:0});
   }
   spawnPlayer(true);   // ラウンド開始は地表から
+  resetCamera();       // カメラをマップ上端へ
 }
 function mkEnemy(type,x,y){
   return {type,x,y,spawnX:x,spawnY:y,dir:rnd()<0.5?"left":"right",face:"left",
@@ -575,6 +605,7 @@ function spawnPlayer(atTop){
           face:"right",moving:false,
           alive:true,pumpT:0,target:null,animT:0,deadT:0};
   harpoon=null;
+  resetCamera();
 }
 
 // ---------- 移動 ----------
@@ -600,7 +631,7 @@ function tryMove(e,want,speed,digs,dt){
   // 境界
   const minY=(digs||tileOpen(Math.round((nx-8)/TILE),1))?TILE+8:TILE+8;
   nx=Math.max(8,Math.min(W-8,nx));
-  ny=Math.max(minY,Math.min(H-8,ny));
+  ny=Math.max(minY,Math.min(MAPH-8,ny));
   if(!digs){
     // 前縁の微細セルが開通しているか
     const fx=nx+mx*7, fy=ny+my*7;
@@ -642,7 +673,7 @@ function updateEnemy(e,dt){
     const d=Math.hypot(player.x-e.x,player.y-e.y)||1;
     e.x+=(player.x-e.x)/d*enemySpeed(e)*dt;
     e.y+=(player.y-e.y)/d*enemySpeed(e)*dt;
-    e.y=Math.max(TILE+8,Math.min(H-8,e.y));
+    e.y=Math.max(TILE+8,Math.min(MAPH-8,e.y));
     e.ghostMin-=dt;
     const c=Math.round((e.x-8)/TILE),r=Math.round((e.y-8)/TILE);
     if(e.ghostMin<=0&&tileOpen(c,r)&&Math.abs(e.x-(c*TILE+8))<5&&Math.abs(e.y-(r*TILE+8))<5){
@@ -873,8 +904,8 @@ function updateRocks(dt){
       if(player.alive&&Math.abs(player.x-k.x)<11&&Math.abs(player.y-k.y)<11)killPlayer();
       // 着地判定
       const fy=Math.floor((k.y+8)/F);
-      if(k.y>=H-8||!dugAt(k.c*2,fy)||!dugAt(k.c*2+1,fy)){
-        k.y=Math.min(k.y,H-8);
+      if(k.y>=MAPH-8||!dugAt(k.c*2,fy)||!dugAt(k.c*2+1,fy)){
+        k.y=Math.min(k.y,MAPH-8);
         k.state="break";k.t=0.5;sfxRockLand();
         // 着地の衝撃で敵は撃破：得点＋花火はここで発生
         for(const e of enemies){
@@ -893,7 +924,10 @@ function updateRocks(dt){
 const VEGS=[["かぶ",400],["にんじん",600],["きのこ",800],["なす",1000],["ピーマン",2000],["トマト",3000],["スイカ",4000],["パイン",5000]];
 function spawnVeg(){
   const idx=Math.min(VEGS.length-1,G.round-1);
-  veg={x:START_C*TILE+8,y:START_R*TILE+8,t:10,idx};
+  // 縦長マップではプレイヤー付近（掘ってきた通路の少し上）に出す
+  const vx=player?player.x:START_C*TILE+8;
+  const vy=player?Math.max(SKY*TILE+8,player.y-24):START_R*TILE+8;
+  veg={x:vx,y:vy,t:10,idx};
 }
 
 // ---------- 進行 ----------
@@ -1034,6 +1068,8 @@ function update(dt){
       loadRanking();
     }
   }
+  // カメラ追従（プレイヤーが動くゲーム中モードのみ）
+  if(player&&(G.mode==="entry"||G.mode==="ready"||G.mode==="play"||G.mode==="death"))updateCamera();
   // ポップアップ
   for(const p of popups){p.t-=dt;p.y-=14*dt;}
   popups=popups.filter(p=>p.t>0);
@@ -1320,12 +1356,13 @@ function render(){
     ctext("ROUND "+G.round,H/2+6,"#FFC53D",2);
     return;
   }
-  // 空（青空）
-  ctx.fillStyle="#2040C8";ctx.fillRect(0,0,W,SKY*TILE);
-  // 地層＋トンネル（黒穴の周囲に濃茶のリムを敷いて土に馴染ませる）
-  ctx.drawImage(dirtCv,0,0);
+  const camY=Math.round(camera.y);
+  // 空（青空）を下地に敷く。地層(dirtCv)は地表より上が透明なので、浅い時だけ空が覗く
+  ctx.fillStyle="#2040C8";ctx.fillRect(0,0,W,H);
+  // 地層＋トンネル（可視スライスをカメラ位置から切り出して描画）
+  ctx.drawImage(dirtCv,0,camY,W,H,0,0,W,H);
   edgeCtx.globalCompositeOperation="copy";
-  edgeCtx.drawImage(tunCv,0,0);
+  edgeCtx.drawImage(tunCv,0,camY,W,H,0,0,W,H);
   edgeCtx.globalCompositeOperation="source-in";
   edgeCtx.fillStyle="#3A1C0C";edgeCtx.fillRect(0,0,W,H);
   for(const o of [[-2,0],[2,0],[0,-2],[0,2],[-2,-2],[2,-2],[-2,2],[2,2]])
@@ -1333,11 +1370,16 @@ function render(){
   edgeCtx.fillStyle="#5E3014";edgeCtx.fillRect(0,0,W,H);
   for(const o of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]])
     ctx.drawImage(edgeCv,o[0],o[1]);
-  ctx.drawImage(tunCv,0,0);
-  // 地表の草
-  ctx.fillStyle="#2E8B3A";ctx.fillRect(0,SKY*TILE-3,W,3);
-  ctx.fillStyle="#48B857";
-  for(let i=0;i<COLS*2;i++)ctx.fillRect(i*8+2,SKY*TILE-5,2,2);
+  ctx.drawImage(tunCv,0,camY,W,H,0,0,W,H);
+  // 地表の草（カメラに合わせて上下）
+  const gy=SKY*TILE-camY;
+  if(gy>-6&&gy<H){
+    ctx.fillStyle="#2E8B3A";ctx.fillRect(0,gy-3,W,3);
+    ctx.fillStyle="#48B857";
+    for(let i=0;i<COLS*2;i++)ctx.fillRect(i*8+2,gy-5,2,2);
+  }
+  // 動くオブジェクトはワールド座標のままカメラ分ずらして描画
+  ctx.save();ctx.translate(0,-camY);
   drawFlowers();
   if(veg)drawVeg(veg);
   for(const k of rocks)drawRock(k);
@@ -1354,6 +1396,7 @@ function render(){
     const tx=Math.max(1,Math.min(W-tw-1,px(p.x)-tw/2));
     text(p.txt,tx,px(p.y)-8,"#FFE96B",2);
   }
+  ctx.restore();
   drawHUD();
   drawBanners();
 }
@@ -1580,6 +1623,9 @@ function drawVeg(v){
 }
 function drawHUD(){
   const nAdv=7, ly=2, vy=9, WHITE="#F8F8F8";      // 数字は少し詰める（既定8→7）
+  // スクロールで背景が動くためHUD帯を敷いて視認性を確保
+  ctx.fillStyle="rgba(10,12,22,0.55)";ctx.fillRect(0,0,W,HUD_H);
+  ctx.fillStyle="rgba(54,78,214,0.5)";ctx.fillRect(0,HUD_H,W,1);
   // SCORE / HIGH / ROUND / LIFE の4カラム（ラベル小＋値大）
   text("SCORE",6,ly,"#FF5A6E",1);
   text(String(G.score).padStart(6,"0"),6,vy,WHITE,2,nAdv);
@@ -1715,6 +1761,7 @@ window.__G={G,input,update,startGame,newRound,
   get player(){return player},get enemies(){return enemies},
   get rocks(){return rocks},get veg(){return veg},
   set veg(v){veg=v},
+  get camera(){return camera},get MAPH(){return MAPH},get ANCHOR_Y(){return ANCHOR_Y},
   dugAt,carveTile,tileOpen,killPlayer,checkLastEnemy};
 })();
 </script>
