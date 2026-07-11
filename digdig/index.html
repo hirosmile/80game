@@ -1559,9 +1559,10 @@ function drawSpearTip(x,y,dx,dy){
 }
 function drawRock(k){
   let ox=0;
-  if(k.state==="wobble"){                            // 少しずつ揺れ始め、だんだん大きくなる
-    const amp=Math.min(3.5,0.4+(k.wt||0)*3.4);
-    ox=(Math.floor((k.wt||0)*16)%2?1:-1)*amp;
+  if(k.state==="wobble"){                            // 控えめに揺れ始め、少しずつ大きく（リアルな微振動）
+    const g=Math.min(1,(k.wt||0)/0.8);               // 進行度 0→1
+    const amp=0.5+g*0.9;                             // 0.5→1.4px
+    ox=Math.sin((k.wt||0)*30)*amp;                   // 滑らかな細かい揺れ
   }
   const x=k.x+ox,y=k.y;
   if(k.state==="break"){
