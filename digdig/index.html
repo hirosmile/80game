@@ -842,9 +842,10 @@ function updateRocks(dt){
   for(const k of rocks){
     if(k.state==="idle"){
       const fy=(k.r+1)*2;
-      if(dugAt(k.c*2,fy)&&dugAt(k.c*2+1,fy)){k.state="wobble";k.t=0.8;}
+      if(dugAt(k.c*2,fy)&&dugAt(k.c*2+1,fy)){k.state="wobble";k.t=0.8;k.wt=0;}
     }else if(k.state==="wobble"){
       k.t-=dt;
+      k.wt=(k.wt||0)+dt;                              // 揺れ経過（だんだん大きく揺らす用）
       if(k.t<=0){
         // プレイヤーが真下（落下経路上）にいる間は落ちない＝岩おびき寄せ
         const underPath=player&&player.alive&&
@@ -1557,7 +1558,11 @@ function drawSpearTip(x,y,dx,dy){
   ctx.fillRect(x-1+(dx>0?1:dx<0?-1:0),y-1+(dy>0?1:dy<0?-1:0),1,1);
 }
 function drawRock(k){
-  const ox=(k.state==="wobble")?(Math.floor(k.t*16)%2?2:-2):0;   // 大きめの岩はグラグラも強めに
+  let ox=0;
+  if(k.state==="wobble"){                            // 少しずつ揺れ始め、だんだん大きくなる
+    const amp=Math.min(3.5,0.4+(k.wt||0)*3.4);
+    ox=(Math.floor((k.wt||0)*16)%2?1:-1)*amp;
+  }
   const x=k.x+ox,y=k.y;
   if(k.state==="break"){
     ctx.fillStyle="#8A8A96";
