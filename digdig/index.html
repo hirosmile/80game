@@ -286,7 +286,7 @@ function updateCamera(){
 // ---------- カラー ----------
 const LAYERS=["#F8B838","#E87800","#C84800","#7C2818"];
 const LAYER_DK=["#E09820","#C86000","#A03800","#601C10"];
-const TUNNEL="#000000";
+const TUNNEL="#1C0F08";   // 完全な黒ではなく濃い焦げ茶
 
 // ---------- DOM ----------
 const backHomeEl=document.getElementById("backHome");
@@ -510,22 +510,20 @@ function carveRect(x0,y0,x1,y1){
     jagEdges(Math.round(x0),Math.round(top),Math.round(x1),Math.round(y1));
   }
 }
-function jagHash(a,b){
-  let h=((a|0)*374761393+(b|0)*668265263)|0;
-  h=(h^(h>>>13))*1274126177;
-  return (((h^(h>>>16))>>>0)&7)<5;          // 約6割の確率で歯を出す
-}
+// ワールド座標に固定した規則的な櫛歯（1マスおき）
+function jagTooth(v){return ((v>>2)&1)===0;}    // 4px刻みで交互（規則的）
 function jagEdges(x0,y0,x1,y1){
-  const t=2;
+  const t=2, s=4;
   tunCtx.fillStyle=TUNNEL;
-  for(let x=Math.floor(x0/4)*4;x<x1;x+=4){   // 上下の縁
-    if(y0>SKY*TILE&&jagHash(x,y0))tunCtx.fillRect(x,Math.max(SKY*TILE,y0-t),3,t);
-    if(y1<MAPH&&jagHash(x,y1))tunCtx.fillRect(x,y1,3,t);
+  for(let x=Math.floor(x0/s)*s;x<x1;x+=s){   // 上下の縁
+    if(!jagTooth(x))continue;
+    if(y0>SKY*TILE)tunCtx.fillRect(x,Math.max(SKY*TILE,y0-t),3,t);
+    if(y1<MAPH)tunCtx.fillRect(x,y1,3,t);
   }
-  for(let y=Math.floor(y0/4)*4;y<y1;y+=4){   // 左右の縁
-    if(y<SKY*TILE)continue;
-    if(x0>0&&jagHash(x0,y))tunCtx.fillRect(Math.max(0,x0-t),y,t,3);
-    if(x1<W&&jagHash(x1,y))tunCtx.fillRect(Math.min(W-t,x1),y,t,3);
+  for(let y=Math.floor(y0/s)*s;y<y1;y+=s){   // 左右の縁
+    if(y<SKY*TILE||!jagTooth(y))continue;
+    if(x0>0)tunCtx.fillRect(Math.max(0,x0-t),y,t,3);
+    if(x1<W)tunCtx.fillRect(Math.min(W-t,x1),y,t,3);
   }
 }
 function carveAround(x,y){carveRect(x-7,y-7,x+7,y+7);}
@@ -671,9 +669,25 @@ function tryMove(e,want,speed,digs,dt){
     }
   }
   if(nx===e.x&&ny===e.y)return;
+  if(digs){
+    // 掘り進む先端が未掘の土か（＝今まさに掘った瞬間か）を判定
+    const [fdx,fdy]=DIRS[e.dir];
+    const fresh=!dugAt(Math.floor((nx+fdx*8)/F),Math.floor((ny+fdy*8)/F));
+    if(fresh)spawnDigDust(nx+fdx*6,ny+fdy*6);
+  }
   e.x=nx;e.y=ny;e.moving=true;
   if(e.dir==="left"||e.dir==="right")e.face=e.dir;
   if(digs)carveAround(e.x,e.y);
+}
+// 掘った直後に土の粒がパラパラ落ちる
+const DUST_COLS=["#E09820","#C86000","#A03800","#7C2818"];
+function spawnDigDust(x,y){
+  const n=2+((rnd()*2)|0);
+  for(let i=0;i<n;i++){
+    parts.push({x:x+(rnd()-0.5)*10, y:y+(rnd()-0.5)*8,
+      vx:(rnd()-0.5)*20, vy:-8+rnd()*8,      // 少し跳ねてから落下（重力42）
+      t:0.32+rnd()*0.22, col:DUST_COLS[(rnd()*DUST_COLS.length)|0]});
+  }
 }
 
 // ---------- 敵AI ----------
@@ -1385,10 +1399,10 @@ function render(){
   edgeCtx.globalCompositeOperation="copy";
   edgeCtx.drawImage(tunCv,0,camY,W,VH,0,0,W,VH);
   edgeCtx.globalCompositeOperation="source-in";
-  edgeCtx.fillStyle="#3A1C0C";edgeCtx.fillRect(0,0,W,VH);
+  edgeCtx.fillStyle="#5A2E14";edgeCtx.fillRect(0,0,W,VH);   // 外周の縁取りを1段階明るく
   for(const o of [[-2,0],[2,0],[0,-2],[0,2],[-2,-2],[2,-2],[-2,2],[2,2]])
     ctx.drawImage(edgeCv,o[0],o[1]);
-  edgeCtx.fillStyle="#5E3014";edgeCtx.fillRect(0,0,W,VH);
+  edgeCtx.fillStyle="#824A26";edgeCtx.fillRect(0,0,W,VH);   // 内側の縁取りも明るく
   for(const o of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]])
     ctx.drawImage(edgeCv,o[0],o[1]);
   ctx.drawImage(tunCv,0,camY,W,VH,0,0,W,VH);
