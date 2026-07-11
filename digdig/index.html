@@ -1579,18 +1579,17 @@ function drawVeg(v){
   drawSpr(SPR_VEG[v.idx%SPR_VEG.length],v.x,v.y,false,1);
 }
 function drawHUD(){
-  const nAdv=7;                                   // 数字は少し詰める（既定8→7）
-  // SCORE（ラベル小＋数字大・左）
-  text("SCORE",8,2,"#FF5A6E",1);
-  text(String(G.score).padStart(6,"0"),8,9,"#F8F8F8",2,nAdv);
-  // HIGH SCORE（ラベル小＋数字大・右揃え）
-  const hl="HIGH SCORE";
-  text(hl,W-6-textW(hl,1),2,"#FFC53D",1);
-  const hn=String(G.hi).padStart(6,"0");
-  text(hn,W-6-textW(hn,2,nAdv),9,"#F8F8F8",2,nAdv);
-  // 残機（数字ではなくキャラアイコン）
+  const nAdv=7, ly=2, vy=9, WHITE="#F8F8F8";      // 数字は少し詰める（既定8→7）
+  // SCORE / HIGH / ROUND / LIFE の4カラム（ラベル小＋値大）
+  text("SCORE",6,ly,"#FF5A6E",1);
+  text(String(G.score).padStart(6,"0"),6,vy,WHITE,2,nAdv);
+  text("HIGH",62,ly,"#FFC53D",1);
+  text(String(G.hi).padStart(6,"0"),62,vy,WHITE,2,nAdv);
+  text("ROUND",116,ly,"#7EC8E3",1);
+  text(String(G.round).padStart(2,"0"),116,vy,WHITE,2,nAdv);
+  text("LIFE",152,ly,"#7DFF9E",1);
   for(let i=0;i<Math.max(0,G.lives);i++)
-    drawSpr(SPR_P1,13+i*15,28,true,1);   // 左向きディギー
+    drawSpr(SPR_P1,160+i*15,14,true,1);   // 自機アイコン（左向きディギー）
 }
 function drawBanners(){
   if(G.mode==="entry"){
