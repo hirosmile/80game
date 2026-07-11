@@ -510,45 +510,34 @@ function carveRect(x0,y0,x1,y1){
     jagEdges(Math.round(x0),Math.round(top),Math.round(x1),Math.round(y1));
   }
 }
-// やわらかい丸い掘り跡：座標ハッシュで自然にばらついた「土のこぶ」で縁を表現
+// やわらかい丸い掘り跡：制御点(6px間隔)をなめらかに補間した連続オフセットで
+// 縁を波打たせる。0の制御点が続く所は直線部分、山になる所はぷっくりした丸い凹凸。
 function edgeHash(a,b){
   let h=((a|0)*374761393+(b|0)*668265263)|0;
   h=(h^(h>>>13))*1274126177;
   return (h^(h>>>16))>>>0;
 }
-// 縁のこぶ（各段ごとに2px細くして丸い頂点にする）。dir=-1:外側は上/左、+1:下/右
-function moundV(cx,edgeY,w,d,dir){          // 上下の縁：縦に盛る丸こぶ
-  for(let i=0;i<d;i++){
-    const iw=w-i*2; if(iw<=0)break;
-    const ry=dir<0?edgeY-1-i:edgeY+i;
-    tunCtx.fillRect(cx-(iw>>1),ry,iw,1);
-  }
+const EDGE_CP=6;                                   // 制御点間隔（凹凸の丸みの幅）
+function ctrlH(i,seed){                             // 制御点の高さ：多くは0(直線)、時々2〜3の山
+  const r=edgeHash(i,seed)%5;
+  return (r<3)?0:(r===3?2:3);
 }
-function moundH(edgeX,cy,w,d,dir){          // 左右の縁：横に盛る丸こぶ
-  for(let i=0;i<d;i++){
-    const iw=w-i*2; if(iw<=0)break;
-    const rx=dir<0?edgeX-1-i:edgeX+i;
-    tunCtx.fillRect(rx,cy-(iw>>1),1,iw);
-  }
-}
-function pickMound(h){                       // ハッシュ→こぶ形（平ら/1段/2段の丸こぶ）
-  const r=h%10;
-  if(r<2)return null;                        // 約20%は平ら（尖りを減らす）
-  const d=(r>=8)?2:1;                         // 約20%は2px深い丸こぶ、他は1px
-  const w=(d===2)?(4+((h>>4)&1)):(2+((h>>4)&1)); // d2:幅4-5, d1:幅2-3
-  return {w,d,off:(h>>6)&1};                  // 位置を0-1pxジッター
+function edgeOffset(t,seed){                        // 連続座標tでの滑らかなオフセット(0..3)
+  const i0=Math.floor(t/EDGE_CP), f=(t-i0*EDGE_CP)/EDGE_CP;
+  const s=f*f*(3-2*f);                             // smoothstep（角を丸く）
+  const h0=ctrlH(i0,seed), h1=ctrlH(i0+1,seed);
+  return Math.round(h0+(h1-h0)*s);
 }
 function jagEdges(x0,y0,x1,y1){
   tunCtx.fillStyle=TUNNEL;
-  const STEP=4;
-  for(let x=Math.floor(x0/STEP)*STEP;x<x1-1;x+=STEP){
-    if(y0>SKY*TILE){const p=pickMound(edgeHash(x,y0));if(p)moundV(x+p.off,Math.max(SKY*TILE+1,y0),p.w,p.d,-1);}
-    if(y1<MAPH){const p=pickMound(edgeHash(x+37,y1));if(p)moundV(x+p.off,y1,p.w,p.d,1);}
+  for(let x=x0;x<x1;x++){                          // 上下の縁（列ごとに滑らかなオフセット）
+    if(y0>SKY*TILE){const o=Math.min(edgeOffset(x,101),y0-SKY*TILE);if(o>0)tunCtx.fillRect(x,y0-o,1,o);}
+    if(y1<MAPH){const o=edgeOffset(x,202);if(o>0)tunCtx.fillRect(x,y1,1,o);}
   }
-  for(let y=Math.floor(y0/STEP)*STEP;y<y1-1;y+=STEP){
+  for(let y=y0;y<y1;y++){                          // 左右の縁（行ごと・左右で同じ粒度）
     if(y<SKY*TILE)continue;
-    if(x0>0){const p=pickMound(edgeHash(x0,y));if(p)moundH(x0,y+p.off,p.w,p.d,-1);}
-    if(x1<W){const p=pickMound(edgeHash(x1,y+37));if(p)moundH(x1,y+p.off,p.w,p.d,1);}
+    if(x0>0){const o=Math.min(edgeOffset(y,303),x0);if(o>0)tunCtx.fillRect(x0-o,y,o,1);}
+    if(x1<W){const o=Math.min(edgeOffset(y,404),W-x1);if(o>0)tunCtx.fillRect(x1,y,o,1);}
   }
 }
 function carveAround(x,y){carveRect(x-9,y-8,x+9,y+8);}   // 自機が収まるよう掘り穴を横に拡幅
