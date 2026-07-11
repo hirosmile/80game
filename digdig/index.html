@@ -526,7 +526,7 @@ function jagEdges(x0,y0,x1,y1){
     if(x1<W)tunCtx.fillRect(Math.min(W-t,x1),y,t,3);
   }
 }
-function carveAround(x,y){carveRect(x-7,y-7,x+7,y+7);}
+function carveAround(x,y){carveRect(x-9,y-8,x+9,y+8);}   // 自機が収まるよう掘り穴を横に拡幅
 function carveTile(c,r){carveRect(c*TILE+1,r*TILE+1,c*TILE+TILE-1,r*TILE+TILE-1);
   // 微細セルはタイル全体を開放
   for(let fy=r*2;fy<r*2+2;fy++)for(let fx=c*2;fx<c*2+2;fx++)setDug(fx,fy);}
