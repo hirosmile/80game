@@ -1247,18 +1247,20 @@ const SPR_G1=makeSprite(gaburaRows(),G_PAL);
 const SPR_GF=makeSprite(gaburaRows(),G_PALF);
 // 岩
 const SPR_ROCK=makeSprite([
-"....OOOOOO....",
-"..OOHHHGGGOO..",
-".OHHHHGGGGGGO.",
-".OHHHGGGGGGKO.",
-"OHHGGGGGGKKGGO",
-"OHGGGGGKKGGGDO",
-"OGGGGKKGGGGDDO",
-"OGGGKGGGGGDDDO",
-".ODGGGGGGDDDO.",
-".ODDGGGGDDDDO.",
-"..OODDDDDDOO..",
-"....OOOOOO....",
+"....OOOOOOOO....",
+"..OOHHHHHGGGOO..",
+".OHHHHHHGGGGGGO.",
+"OHHHHHGGGGGGGGGO",
+"OHHHHGGGGGGGKGGO",
+"OHHHGGGGGKKGGGDO",
+"OHHGGGGKKGGGGGDO",
+"OHGGGGKGGGGGGDDO",
+"OGGGGGGGGGGGGDDO",
+"OGGGGGGGGGGGDDDO",
+"OGGGGGGGGGGDDDDO",
+"OGGGGGGGGGDDDDDO",
+"OODDDDDDDDDDDDDO",
+"OOOOOOOOOOOOOOOO",
 ],{O:"#26262E",H:"#D8D8E4",G:"#8A8A96",K:"#3E3E48",D:"#5E5E6A"});
 // 野菜（ラウンドごとに循環）
 const SPR_VEG=[
@@ -1555,7 +1557,7 @@ function drawSpearTip(x,y,dx,dy){
   ctx.fillRect(x-1+(dx>0?1:dx<0?-1:0),y-1+(dy>0?1:dy<0?-1:0),1,1);
 }
 function drawRock(k){
-  const ox=(k.state==="wobble")?(Math.floor(k.t*16)%2?1:-1):0;
+  const ox=(k.state==="wobble")?(Math.floor(k.t*16)%2?2:-2):0;   // 大きめの岩はグラグラも強めに
   const x=k.x+ox,y=k.y;
   if(k.state==="break"){
     ctx.fillStyle="#8A8A96";
