@@ -1177,15 +1177,15 @@ const SPR_PD1=makeSprite([
 "....OOOOO....",   // アンテナ
 "..WWWWWWWWW..",
 ".WWWWWWWWWWW.",
-".WWWWWWWWWWW.",
 ".WVVVVVVVVVW.",   // バイザー上
 ".WVLKVVVKLVW.",   // 目上（きらめきL＋黒目K）
-".WVKKVVVKKVW.",   // 目
-".WVKKVVVKKVW.",   // 目下（大きな二つ目）
+".WVKKVVVKKVW.",   // 大きな二つ目
 ".WVPVKKKVPVW.",   // ほほP＋笑顔KKK
 ".WWVVVVVVVWW.",   // バイザー下
 ".WWWWWWWWWWW.",   // 胴
-".OMMMvvvMMMO.",   // ポンプ銛（金具O・銀M・青ゲージv）
+"OoMMMvvvMMMoO",   // 両手（オレンジO/o）でポンプ銛を構える
+".WWWWWWWWWWW.",   // 胴（銛の下）
+".WWWWWWWWWWW.",
 "..OO.....OO..",   // 足
 ],P_PAL);
 const SPR_PD2=makeSprite([
@@ -1193,29 +1193,29 @@ const SPR_PD2=makeSprite([
 "....OOOOO....",
 "..WWWWWWWWW..",
 ".WWWWWWWWWWW.",
-".WWWWWWWWWWW.",
 ".WVVVVVVVVVW.",
 ".WVLKVVVKLVW.",
-".WVKKVVVKKVW.",
 ".WVKKVVVKKVW.",
 ".WVPVKKKVPVW.",
 ".WWVVVVVVVWW.",
 ".WWWWWWWWWWW.",
-".OMMMvvvMMMO.",
+"OoMMMvvvMMMoO",
+".WWWWWWWWWWW.",
+".WWWWWWWWWWW.",
 "...OOO.OOO...",   // 歩行：足を閉じる
 ],P_PAL);
-// --- 上向き（背面）: 顔なし・アンテナ・背面3スリット通気口・下にホース ---
+// --- 上向き（背面）: 顔なし・アンテナ・背面3スリット通気口・脇から手・下にホース ---
 const SPR_PU1=makeSprite([
 "....AAAAA....",
 "....OOOOO....",
 "..WWWWWWWWW..",
 ".WWWWWWWWWWW.",
 ".WWWWWWWWWWW.",
-".WWWWWWWWWWW.",
 ".WWsssssssWW.",   // 通気口パネル上
 ".WWsvsvsvsWW.",   // 3スリット（青）
 ".WWsvsvsvsWW.",
 ".WWsssssssWW.",   // 通気口パネル下
+"O.WWWWWWWWW.O",   // 脇からのぞく手（オレンジ）
 ".WWWWWWWWWWW.",
 ".WWWWWWWWWWW.",
 "....HHHHH....",   // 背面のホース
@@ -1227,11 +1227,11 @@ const SPR_PU2=makeSprite([
 "..WWWWWWWWW..",
 ".WWWWWWWWWWW.",
 ".WWWWWWWWWWW.",
-".WWWWWWWWWWW.",
 ".WWsssssssWW.",
 ".WWsvsvsvsWW.",
 ".WWsvsvsvsWW.",
 ".WWsssssssWW.",
+"O.WWWWWWWWW.O",
 ".WWWWWWWWWWW.",
 ".WWWWWWWWWWW.",
 "....HHHHH....",
