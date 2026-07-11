@@ -1375,9 +1375,18 @@ function drawTitle(){
   }else{
     drawLogo('CHUPPY',W/2,72,30);
   }
-  // タイトル直下にハイスコアを大きく
-  ctx.fillStyle='#f33'; ctx.font='bold 13px monospace';
-  ctx.fillText('HI SCORE '+(''+hi).padStart(7,'0'),W/2,98);
+  // ロゴ下のハイスコア（控えめなサイズ・広めの余白・HUDと同じ配色）
+  {
+    ctx.font='bold 10px monospace';
+    const lbl='HI SCORE', num=(''+hi).padStart(7,'0');
+    const lblW=ctx.measureText(lbl+'  ').width;
+    const total=lblW+ctx.measureText(num).width;
+    const x0=W/2-total/2, hy=106;
+    ctx.textAlign='left';
+    ctx.fillStyle='#f33'; ctx.fillText(lbl,x0,hy);
+    ctx.fillStyle='#fff'; ctx.fillText(num,x0+lblW,hy);
+    ctx.textAlign='center';
+  }
   // キャラクター紹介
   const rows=[
     [MOUSE,MOUSEPAL,'OFFICER','.RECOVER THE STOLEN TREASURES'],
