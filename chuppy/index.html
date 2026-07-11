@@ -60,11 +60,11 @@
     letter-spacing:1px; text-decoration:none; backdrop-filter:blur(2px); }
   #backHome:active { filter:brightness(1.3); }
   /* オンラインハイスコア（共通） */
-  #nameEntry,#rankModal{position:fixed;inset:0;z-index:200;display:none;
+  #nameEntry{position:fixed;inset:0;z-index:200;display:none;
     flex-direction:column;align-items:center;justify-content:center;gap:14px;
     padding:24px;text-align:center;background:rgba(5,8,15,.92);
     -webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);font-family:monospace;}
-  #nameEntry.show,#rankModal.show{display:flex;}
+  #nameEntry.show{display:flex;}
   .neTitle{font-size:20px;font-weight:bold;letter-spacing:3px;color:#7dff9e;text-shadow:0 0 14px rgba(125,255,158,.6);}
   .neScore{font-size:15px;color:#ffd76a;letter-spacing:2px;}
   #neInput{width:min(78vw,260px);font-family:inherit;font-size:20px;font-weight:bold;
@@ -72,34 +72,16 @@
     background:#10162a;border:2px solid #2b3ec2;border-radius:8px;padding:12px 10px;outline:none;}
   #neInput:focus{border-color:#7dff9e;box-shadow:0 0 12px rgba(125,255,158,.3);}
   .neBtns{display:flex;gap:12px;}
-  #nameEntry button,#rankModal button{font-family:inherit;font-weight:bold;font-size:14px;
+  #nameEntry button{font-family:inherit;font-weight:bold;font-size:14px;
     letter-spacing:2px;padding:11px 22px;border-radius:8px;border:none;cursor:pointer;}
   #neSubmit{color:#0a140e;background:linear-gradient(180deg,#8fffb8,#39d95d);box-shadow:0 3px 0 #1e7c3c;}
-  #neSkip,#rankClose{color:#c9d0e2;background:#232a44;box-shadow:0 3px 0 #12162a;}
-  #nameEntry button:active,#rankModal button:active{transform:translateY(2px);box-shadow:none;}
+  #neSkip{color:#c9d0e2;background:#232a44;box-shadow:0 3px 0 #12162a;}
+  #nameEntry button:active{transform:translateY(2px);box-shadow:none;}
   #neMsg{font-size:11px;letter-spacing:1px;color:#8a90a8;min-height:14px;}
-  .rankCard{width:min(88vw,340px);background:#0c0f22;border:2px solid #2b3ec2;border-radius:12px;
-    padding:18px 16px;display:flex;flex-direction:column;gap:12px;box-shadow:0 8px 30px rgba(0,0,0,.6);}
-  .rankHd{font-size:13px;font-weight:bold;letter-spacing:3px;color:#ffd75e;}
-  .rankList{display:flex;flex-direction:column;gap:3px;}
-  .rankRow{display:flex;align-items:center;gap:10px;font-size:13px;padding:4px 8px;border-radius:5px;background:rgba(125,255,200,.04);}
-  .rankRow .rk{width:20px;text-align:right;color:#7dffc8;font-weight:bold;}
-  .rankRow .nm{flex:1;text-align:left;color:#e8e8d0;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  .rankRow .sc{color:#ffd76a;font-weight:bold;letter-spacing:1px;}
-  .rankRow.top1{background:rgba(255,215,94,.08);} .rankRow.top1 .rk{color:#ffd75e;}
-  .rankNote{font-size:11px;letter-spacing:1px;color:#6a7a8a;}
-  #rankBtn{position:fixed;z-index:150;top:calc(8px + env(safe-area-inset-top));right:8px;
-    display:none;align-items:center;gap:5px;font-family:monospace;font-weight:bold;
-    font-size:11px;letter-spacing:1px;color:#0a140e;
-    background:linear-gradient(180deg,#ffe08a,#ffb733);border:none;border-radius:20px;
-    padding:6px 13px;box-shadow:0 2px 0 #9c6a00;cursor:pointer;}
-  #rankBtn.show{display:inline-flex;}
-  #rankBtn:active{transform:translateY(1px);box-shadow:none;}
 </style>
 </head>
 <body>
 <a id="backHome" href="../">◀ 80game</a>
-<button id="rankBtn" type="button">🏆 RANKING</button>
 <div id="nameEntry">
   <div class="neTitle">RANK IN!</div>
   <div class="neScore" id="neScore">SCORE 0</div>
@@ -110,13 +92,6 @@
     <button id="neSubmit" type="button">SUBMIT</button>
   </div>
   <div id="neMsg"></div>
-</div>
-<div id="rankModal">
-  <div class="rankCard">
-    <div class="rankHd">ONLINE RANKING</div>
-    <div class="rankList" id="rankList"><div class="rankNote">LOADING…</div></div>
-    <button id="rankClose" type="button">CLOSE</button>
-  </div>
 </div>
 <script>document.addEventListener('keydown', e => { if(e.key === 'Escape') location.href = '../'; });</script>
 <div id="wrap">
@@ -1459,49 +1434,25 @@ function drawTitle(){
     ry+=30;
   }
   ctx.textAlign='center';
-  // --- 高得点デモ: 主人公が左から順にアイテムを取り、得点が上がる ---
-  ctx.fillStyle='#ffe66d'; ctx.font='bold 9px monospace';
-  ctx.fillText('HIGH SCORE TIPS',W/2,226);
-  {
-    const N=5, gap=40, iy=258;
-    const startX=W/2-((N-1)*gap)/2;
-    const perItem=50, walkT=18, riseDur=12, popDur=18, cycle=N*perItem+60;
-    const ph=frame%cycle;
-    const collectT=(t)=>t*perItem+walkT;
-    const cur=Math.min(N-1, Math.floor(ph/perItem));
-    const local=ph-cur*perItem;
-    const prevX=cur===0? startX-34 : startX+(cur-1)*gap;
-    const curX=startX+cur*gap;
-    let ox, walking;
-    if(ph>=N*perItem){ ox=startX+(N-1)*gap; walking=false; }
-    else if(local<walkT){ ox=prevX+(curX-prevX)*(local/walkT); walking=true; }
-    else { ox=curX; walking=false; }
-    // アイテム(未取得=棚 / 取得中=持ち上げてフェード / 取得後=消える)
-    for(let t=0;t<N;t++){
-      const ix=startX+t*gap, dt=ph-collectT(t);
-      if(dt<0){ drawItemIcon(t,ix,iy); }
-      else if(dt<riseDur){
-        const pr=dt/riseDur, e=1-(1-pr)*(1-pr);
-        ctx.globalAlpha=Math.max(0,1-pr); drawItemIcon(t,ix,iy-4-e*18); ctx.globalAlpha=1;
-      }
+  // --- オンラインランキング ---
+  ctx.fillStyle='#ffd24d'; ctx.font='bold 12px monospace';
+  ctx.fillText('RANKING',W/2,232);
+  if(rankNote){
+    ctx.fillStyle='#8a90a8'; ctx.font='8px monospace';
+    ctx.fillText(rankNote,W/2,262);
+  }else{
+    ctx.font='10px monospace';
+    for(let i=0;i<onlineTop.length && i<5;i++){
+      const y=252+i*15;
+      const nm=String(onlineTop[i].name||'???').toUpperCase().slice(0,8);
+      const sc=String(onlineTop[i].score).padStart(6,'0');
+      ctx.textAlign='left';
+      ctx.fillStyle=i===0?'#ffd75e':'#7dffc8'; ctx.fillText(String(i+1),44,y);
+      ctx.fillStyle=i===0?'#ffd75e':'#e8e8d0'; ctx.fillText(nm,64,y);
+      ctx.textAlign='right';
+      ctx.fillStyle='#ffd76a'; ctx.fillText(sc,W-44,y);
     }
-    // 主人公(歩く→掲げる)
-    const atItem=(ph<N*perItem && local>=walkT);
-    const spr=atItem?MOUSE_JUMP:(walking?((frame/6|0)%2?MOUSE_WALK1:MOUSE_WALK2):MOUSE);
-    drawMap(spr,MOUSEPAL,Math.round(ox)-8,iy-16,false);
-    // +点数: アイテムが消えた後にキャラの頭上へ(ふわっと上がって消える)
-    if(ph<N*perItem){
-      const idt=local-walkT;                        // 取得からの経過
-      if(idt>=riseDur && idt<riseDur+popDur){
-        const k=(idt-riseDur)/popDur;               // 0→1
-        ctx.globalAlpha=Math.max(0,1-k);
-        ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
-        ctx.fillText('+'+ITEMDEF[cur].pts, curX, iy-17-k*8);   // 頭上
-        ctx.globalAlpha=1;
-      }
-    }
-    ctx.fillStyle='#9aa0c0'; ctx.font='7px monospace'; ctx.textAlign='center';
-    ctx.fillText('GRAB ITEMS IN ORDER TO SCORE BIG', W/2, 300);
+    ctx.textAlign='center';
   }
 
   ctx.fillStyle='#fff'; ctx.font='8px monospace';
@@ -1545,7 +1496,7 @@ function tick(){
     updateTally();
   }else if(state==='over'){
     stTimer--;
-    if(stTimer<=0||inp.aEdge){ inp.aEdge=false; state='title'; newRound(); }
+    if(stTimer<=0||inp.aEdge){ inp.aEdge=false; state='title'; newRound(); loadRanking(); }
   }
   draw();
   requestAnimationFrame(tick);
@@ -1567,21 +1518,20 @@ const SB_URL='https://asazrqkdeikuzhszjpxa.supabase.co';
 const SB_KEY='sb_publishable_28x942ZwhHz1Ai0hbrADHA_jkQbl9DN';
 const SB_GAME='chuppy';
 const SB_HEAD={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
-let onlineTop=[], neVisible=false, submitScoreVal=0;
+let onlineTop=[], rankNote='LOADING…', neVisible=false, submitScoreVal=0;
 async function sbTop(limit){
   try{const r=await fetch(SB_URL+'/rest/v1/scores?game=eq.'+SB_GAME+'&select=name,score&order=score.desc&limit='+(limit||10),{headers:SB_HEAD});return r.ok?await r.json():null;}catch(_){return null;}
 }
 async function sbSubmit(nm,sc){
   try{const r=await fetch(SB_URL+'/rest/v1/scores',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'return=minimal'},SB_HEAD),body:JSON.stringify({game:SB_GAME,name:nm,score:sc})});return r.ok;}catch(_){return false;}
 }
-function renderRankList(rows){
-  const el=document.getElementById('rankList');
-  if(!rows){el.innerHTML='<div class="rankNote">OFFLINE — could not load ranking</div>';return;}
-  if(!rows.length){el.innerHTML='<div class="rankNote">No records yet — be the first!</div>';return;}
-  el.innerHTML=rows.map((r,i)=>{const nm=String(r.name||'---').replace(/[<>&]/g,'');return '<div class="rankRow'+(i===0?' top1':'')+'"><span class="rk">'+(i+1)+'</span><span class="nm">'+nm+'</span><span class="sc">'+String(r.score).padStart(6,'0')+'</span></div>';}).join('');
+async function loadRanking(){
+  const rows=await sbTop(5);
+  if(rows===null){onlineTop=[];rankNote='OFFLINE';}
+  else if(!rows.length){onlineTop=[];rankNote='NO RECORDS YET';}
+  else{onlineTop=rows;rankNote='';}
 }
-async function loadRanking(){const rows=await sbTop(10);onlineTop=rows||[];renderRankList(rows);}
-function qualifies(s){if(s<=0)return false;if(!onlineTop||onlineTop.length<10)return true;return s>onlineTop[onlineTop.length-1].score;}
+function qualifies(s){if(s<=0)return false;if(!onlineTop||onlineTop.length<5)return true;return s>onlineTop[onlineTop.length-1].score;}
 const neEl=document.getElementById('nameEntry');
 function showNameEntry(sc){
   neVisible=true;submitScoreVal=sc;
@@ -1602,16 +1552,6 @@ document.getElementById('neSubmit').addEventListener('click',doSubmit);
 document.getElementById('neSkip').addEventListener('click',hideNameEntry);
 document.getElementById('neInput').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();doSubmit();}});
 neEl.addEventListener('pointerdown',e=>e.stopPropagation());
-const rankModalEl=document.getElementById('rankModal');
-document.getElementById('rankBtn').addEventListener('click',e=>{e.preventDefault();e.stopPropagation();rankModalEl.classList.add('show');loadRanking();});
-document.getElementById('rankClose').addEventListener('click',()=>rankModalEl.classList.remove('show'));
-rankModalEl.addEventListener('pointerdown',e=>e.stopPropagation());
-// タイトル状態でランキングボタンを表示（描画ループから毎フレーム）
-(function rankBtnTick(){
-  const b=document.getElementById('rankBtn');
-  if(b) b.classList.toggle('show', state==='title' && !neVisible);
-  requestAnimationFrame(rankBtnTick);
-})();
 loadRanking();
 </script>
 </body>
