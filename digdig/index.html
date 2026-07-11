@@ -526,7 +526,7 @@ function jagEdges(x0,y0,x1,y1){
     if(x1<W)tunCtx.fillRect(Math.min(W-t,x1),y,t,3);
   }
 }
-function carveAround(x,y){carveRect(x-7,y-7,x+7,y+7);}
+function carveAround(x,y){carveRect(x-9,y-8,x+9,y+8);}   // 自機が収まるよう掘り穴を横に拡幅
 function carveTile(c,r){carveRect(c*TILE+1,r*TILE+1,c*TILE+TILE-1,r*TILE+TILE-1);
   // 微細セルはタイル全体を開放
   for(let fy=r*2;fy<r*2+2;fy++)for(let fx=c*2;fx<c*2+2;fx++)setDug(fx,fy);}
@@ -1164,109 +1164,128 @@ function makeSprite(rows,pal){
   }
   return c;
 }
-// 主人公ディギー（2頭身ちびキャラ・白ヘルメット, 12px幅・全アングル再設計）
-const P_PAL={H:"#FFFFFF",V:"#2E78E0",L:"#BFD9FF",W:"#F4F6FF",S:"#CDD2E2",K:"#141420",O:"#F87818",C:"#FFC0A0",G:"#A8AEC4",P:"#FF9DB0",M:"#9AA0B4",D:"#5A6072"};
-// --- 下向き（正面）: 左右対称・2つ目・ほほ ---
+// 主人公ディギー（参考イラスト準拠：ドーム型・オレンジのネジ栓アンテナ・大きな目＋笑顔＋ほほ・
+//   青いゲージ付きポンプ銛・青いホース・背面の3スリット通気口, 13px幅×14高・全アングル）
+// W:白ボディ / S:薄グレー影 / s:通気口パネル灰 / V:青バイザー / v:明るい青(ゲージ/スリット) /
+// L:白きらめき / K:濃色(目・輪郭) / O:オレンジ(足/栓/金具) / o:オレンジ影 / A:オレンジ光沢 /
+// P:ほほ / H:ホース青 / h:ホース濃青 / M:金属銀 / D:金属影
+const P_PAL={W:"#FFFFFF",S:"#DCE1EC",s:"#AEB6CA",V:"#1E86DE",v:"#54B0F2",L:"#EAF7FF",K:"#111420",
+  O:"#FFAA2A",o:"#E07C12",A:"#FFCB63",P:"#FF9FB2",H:"#2A93DE",h:"#12608F",M:"#CBD2DE",D:"#7E8698"};
+// --- 下向き（正面）: 大きな目＋笑顔＋ほほ・ゲージ付きポンプ（基準形・LIFEアイコン代表形）---
 const SPR_PD1=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHVVVVVVHH.",
-".HVLKWWKLVH.",
-".HVWKWWKWVH.",
-".HPVKWWKVPH.",
-"..HWWKKWWH..",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-"..KKK..KKK..",
-"..OOO..OOO..",
+"....AAAAA....",   // アンテナ（ネジ栓）光沢
+"....OOOOO....",   // アンテナ
+"..WWWWWWWWW..",
+".WWWWWWWWWWW.",
+".WVVVVVVVVVW.",   // バイザー上
+".WVLKVVVKLVW.",   // 目上（きらめきL＋黒目K）
+".WVKKVVVKKVW.",   // 大きな二つ目
+".WVPVKKKVPVW.",   // ほほP＋笑顔KKK
+".WWVVVVVVVWW.",   // バイザー下
+".WWWWWWWWWWW.",   // 胴
+"OoMMMvvvMMMoO",   // 両手（オレンジO/o）でポンプ銛を構える
+".WWWWWWWWWWW.",   // 胴（銛の下）
+".WWWWWWWWWWW.",
+"..OO.....OO..",   // 足
 ],P_PAL);
 const SPR_PD2=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHVVVVVVHH.",
-".HVLKWWKLVH.",
-".HVWKWWKWVH.",
-".HPVKWWKVPH.",
-"..HWWKKWWH..",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-"....KKKK....",
-"..OOO..OOO..",
+"....AAAAA....",
+"....OOOOO....",
+"..WWWWWWWWW..",
+".WWWWWWWWWWW.",
+".WVVVVVVVVVW.",
+".WVLKVVVKLVW.",
+".WVKKVVVKKVW.",
+".WVPVKKKVPVW.",
+".WWVVVVVVVWW.",
+".WWWWWWWWWWW.",
+"OoMMMvvvMMMoO",
+".WWWWWWWWWWW.",
+".WWWWWWWWWWW.",
+"...OOO.OOO...",   // 歩行：足を閉じる
 ],P_PAL);
-// --- 上向き（背面）: 左右対称・顔なし・頭上ノズル ---
+// --- 上向き（背面）: 顔なし・アンテナ・背面3スリット通気口・脇から手・下にホース ---
 const SPR_PU1=makeSprite([
-".....OO.....",
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHHHHHHHHH.",
-".HHGGGGGGHH.",
-"..HWWWWWWH..",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-"..KKK..KKK..",
-"..OOO..OOO..",
+"....AAAAA....",
+"....OOOOO....",
+"..WWWWWWWWW..",
+".WWWWWWWWWWW.",
+".WWWWWWWWWWW.",
+".WWsssssssWW.",   // 通気口パネル上
+".WWsvsvsvsWW.",   // 3スリット（青）
+".WWsvsvsvsWW.",
+".WWsssssssWW.",   // 通気口パネル下
+"O.WWWWWWWWW.O",   // 脇からのぞく手（オレンジ）
+".WWWWWWWWWWW.",
+".WWWWWWWWWWW.",
+"....HHHHH....",   // 背面のホース
+"..OO.....OO..",
 ],P_PAL);
 const SPR_PU2=makeSprite([
-".....OO.....",
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHHHHHHHHH.",
-".HHGGGGGGHH.",
-"..HWWWWWWH..",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-"....KKKK....",
-"..OOO..OOO..",
+"....AAAAA....",
+"....OOOOO....",
+"..WWWWWWWWW..",
+".WWWWWWWWWWW.",
+".WWWWWWWWWWW.",
+".WWsssssssWW.",
+".WWsvsvsvsWW.",
+".WWsvsvsvsWW.",
+".WWsssssssWW.",
+"O.WWWWWWWWW.O",
+".WWWWWWWWWWW.",
+".WWWWWWWWWWW.",
+"....HHHHH....",
+"...OOO.OOO...",
 ],P_PAL);
-// --- 右向き（横）: 直立・歩行2フレーム・ポンプ保持・目にきらめき＋ほほ ---
+// --- 右向き（横）: 片目バイザー・前方へポンプ銛・青ホースの垂れ・前足強調 ---
 const SPR_P1=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-"..HVVVVVVVH.",
-"..HVWLKKVVH.",   // 白目+きらめき(L)+黒目
-"..HVWWKKVPH.",   // ほほ(P)
-"..HVVVVVVVH.",
-"..WWWWWWWW..",
-"..WWWWWWMDO.",
-"..WWWWWWMD..",
-"..WWWWWWWW..",
-".KK...KKKK..",
-".OO....OOO..",
+"....OOOOO....",
+"....OOOOO....",
+"...WWWWWWW...",
+"..WWWWWWWWW..",
+".WWWWVVVVVWW.",   // 前(右)にバイザー
+".WWWWVLKKVWW.",   // 片目（きらめき＋黒目）
+".WWWWVKKVVWW.",
+".WWWWVVVVVWW.",
+".WWWWWWWWWWW.",
+".WWWOMMMMMMDM",   // 前方へポンプ銛（金具O・銀M・穂先D）
+".WWWWvMMMMM..",   // 青ゲージv
+".WWHhhWWWWWW.",   // ホース
+".HhhH........",
+".OO....OOO...",   // 後足＋前足（前足強調）
 ],P_PAL);
 const SPR_P2=makeSprite([
-"............",
-"...HHHHHH...",
-"..HHHHHHHH..",
-"..HVVVVVVVH.",
-"..HVWLKKVVH.",
-"..HVWWKKVPH.",
-"..HVVVVVVVH.",
-"..WWWWWWWW..",
-"..WWWWWWMD..",
-"..WWWWWWMDO.",
-".KKKK...KK..",
-".OOO....OO..",
+"....OOOOO....",
+"....OOOOO....",
+"...WWWWWWW...",
+"..WWWWWWWWW..",
+".WWWWVVVVVWW.",
+".WWWWVLKKVWW.",
+".WWWWVKKVVWW.",
+".WWWWVVVVVWW.",
+".WWWWWWWWWWW.",
+".WWWOMMMMMMDM",
+".WWWWvMMMMM..",
+".WWHhhWWWWWW.",
+"..HhhH.......",
+".OOO...OO....",   // 歩行：足を入れ替え
 ],P_PAL);
 // --- やられ: ><目・手足を広げる ---
 const SPR_PKO=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHVVVVVVHH.",
-".HVKVWWVKVH.",
-".HVKVWWVKVH.",
-".HHVVVVVVHH.",
-"WW.WWWWWW.WW",
-"..WWWWWWWW..",
-"..WWWWWWWW..",
-".KK......KK.",
-".OO......OO.",
+"....OOOOO....",
+"..WWWWWWWWW..",
+".WWWWWWWWWWW.",
+".WVKVWWWVKVW.",   // ><目
+".WVKVWWWVKVW.",
+".WWVVVOVVVWW.",   // 驚き口
+"WW.WWWWWWW.WW",   // 手を広げる
+".WWWWWWWWWWW.",
+".OMMMvvvMMMO.",
+".WWWWWWWWWWW.",
+".OO.......OO.",
+".OO.......OO.",
+".............",
+".............",
 ],P_PAL);
 // フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣・大きな瞳＋ほっぺ・2フレーム）
 const F_PAL={P:"#F88820",D:"#C25808",A:"#FFE0B0",W:"#F8F8F8",K:"#181828",C:"#FF9E9E"};
@@ -1361,7 +1380,7 @@ makeSprite([ // なす
 const SPR_FLOWER_W=makeSprite(["..W..",".WWW.","W.Y.W",".WWW.","..G..","..G.."],{W:"#FFF2F5",Y:"#FFD24D",G:"#3AA34A"});
 const SPR_FLOWER_R=makeSprite(["..R..",".RRR.","R.Y.R",".RRR.","..G..","..G.."],{R:"#FF5A6E",Y:"#FFD24D",G:"#3AA34A"});
 // 残機アイコン
-const SPR_LIFE=makeSprite(["BBBBBB","BBBBBB","WWWWWW","WWWWWW","O....O"],{B:"#2050E8",W:"#F8F8F8",O:"#F87818"});
+const SPR_LIFE=makeSprite([".AA...","WWWWWW","VKWWKV","WWWWWW","O....O"],{A:"#FF8C1E",W:"#FFFFFF",V:"#33A6EC",K:"#12141F",O:"#FFAE24"});
 
 function drawSpr(img,x,y,flip,scale){
   scale=scale||1;
@@ -1537,7 +1556,7 @@ function drawPlayer(){
   if(player.dir==="up")      img=f?SPR_PU2:SPR_PU1;
   else if(player.dir==="down")img=f?SPR_PD2:SPR_PD1;
   else{img=f?SPR_P2:SPR_P1;flip=player.face==="left";}
-  drawSpr(img,x,y-(player.moving&&f?1:0),flip,1.25);
+  drawSpr(img,x,y-(player.moving&&f?1:0),flip,1.12);
 }
 function drawEnemy(e){
   const x=e.x,y=e.y;
@@ -1671,7 +1690,7 @@ function drawHUD(){
   text(String(G.round).padStart(2,"0"),116,vy,WHITE,2,nAdv);
   text("LIFE",152,ly,"#7DFF9E",1);
   for(let i=0;i<Math.max(0,G.lives);i++)
-    drawSpr(SPR_P1,160+i*15,14,true,1);   // 自機アイコン（左向きディギー）
+    drawSpr(SPR_PD1,160+i*15,13,false,1);   // 自機アイコン（正面ディギー・代表形）
 }
 function drawBanners(){
   if(G.mode==="entry"){
