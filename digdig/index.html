@@ -673,7 +673,8 @@ function tryMove(e,want,speed,digs,dt){
     // 掘り進む先端が未掘の土か（＝今まさに掘った瞬間か）を判定
     const [fdx,fdy]=DIRS[e.dir];
     const fresh=!dugAt(Math.floor((nx+fdx*8)/F),Math.floor((ny+fdy*8)/F));
-    if(fresh)spawnDigDust(nx+fdx*6,ny+fdy*6);
+    // 土埃は掘り進む方向の“後ろ”に出す（自機と被らないよう十分後方へ）
+    if(fresh)spawnDigDust(nx-fdx*13,ny-fdy*13);
   }
   e.x=nx;e.y=ny;e.moving=true;
   if(e.dir==="left"||e.dir==="right")e.face=e.dir;
