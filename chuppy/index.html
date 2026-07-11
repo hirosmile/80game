@@ -1410,7 +1410,7 @@ function drawTitle(){
     const lbl='HI SCORE', num=(''+hi).padStart(7,'0');
     const lblW=ctx.measureText(lbl+'  ').width;
     const total=lblW+ctx.measureText(num).width;
-    const x0=W/2-total/2, hy=92;
+    const x0=W/2-total/2, hy=106;
     ctx.textAlign='left';
     ctx.fillStyle='#f33'; ctx.fillText(lbl,x0,hy);
     ctx.fillStyle='#fff'; ctx.fillText(num,x0+lblW,hy);
@@ -1418,14 +1418,14 @@ function drawTitle(){
   }
   // --- ① オンラインランキング（上位3件） ---
   ctx.fillStyle='#ffd24d'; ctx.font='bold 12px monospace';
-  ctx.fillText('RANKING',W/2,110);
+  ctx.fillText('RANKING',W/2,126);
   if(rankNote){
     ctx.fillStyle='#8a90a8'; ctx.font='8px monospace';
-    ctx.fillText(rankNote,W/2,128);
+    ctx.fillText(rankNote,W/2,144);
   }else{
     ctx.font='10px monospace';
     for(let i=0;i<onlineTop.length && i<3;i++){
-      const y=124+i*13;
+      const y=140+i*13;
       const nm=String(onlineTop[i].name||'???').toUpperCase().slice(0,8);
       const sc=String(onlineTop[i].score).padStart(6,'0');
       ctx.textAlign='left';
