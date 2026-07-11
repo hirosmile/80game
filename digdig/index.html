@@ -1065,17 +1065,17 @@ const FONT={
 "Y":"101101010010010","Z":"111001010100111",
 "!":"010010010000010",".":"000000000000010","-":"000000111000000"," ":"000000000000000",
 };
-function text(str,x,y,color,sc){
-  sc=sc||1;ctx.fillStyle=color;
+function text(str,x,y,color,sc,adv){
+  sc=sc||1;adv=adv||4*sc;ctx.fillStyle=color;   // adv=文字送り（省略時は従来通り4*sc）
   str=String(str).toUpperCase();
   for(let i=0;i<str.length;i++){
     const g=FONT[str[i]];if(!g)continue;
-    const ox=x+i*4*sc;
+    const ox=Math.round(x+i*adv);
     for(let r=0;r<5;r++)for(let c=0;c<3;c++)
       if(g[r*3+c]==="1")ctx.fillRect(ox+c*sc,y+r*sc,sc,sc);
   }
 }
-function textW(str,sc){return String(str).length*4*(sc||1)-(sc||1);}
+function textW(str,sc,adv){sc=sc||1;adv=adv||4*sc;const n=String(str).length;return n?((n-1)*adv+3*sc):0;}
 
 // --- ドット絵スプライト（オリジナルキャラ。文字→色のマップ）---
 function makeSprite(rows,pal){
@@ -1579,12 +1579,18 @@ function drawVeg(v){
   drawSpr(SPR_VEG[v.idx%SPR_VEG.length],v.x,v.y,false,1);
 }
 function drawHUD(){
-  text("1UP",8,4,"#FF5A6E",2);
-  text(String(G.score).padStart(6,"0"),34,4,"#F8F8F8",2);
-  text("HIGH",W-88,4,"#FFC53D",2);
-  text(String(G.hi).padStart(6,"0"),W-52,4,"#F8F8F8",2);
+  const nAdv=7;                                   // 数字は少し詰める（既定8→7）
+  // SCORE（ラベル小＋数字大・左）
+  text("SCORE",8,2,"#FF5A6E",1);
+  text(String(G.score).padStart(6,"0"),8,9,"#F8F8F8",2,nAdv);
+  // HIGH SCORE（ラベル小＋数字大・右揃え）
+  const hl="HIGH SCORE";
+  text(hl,W-6-textW(hl,1),2,"#FFC53D",1);
+  const hn=String(G.hi).padStart(6,"0");
+  text(hn,W-6-textW(hn,2,nAdv),9,"#F8F8F8",2,nAdv);
+  // 残機（数字ではなくキャラアイコン）
   for(let i=0;i<Math.max(0,G.lives);i++)
-    drawSpr(SPR_P1,13+i*15,25,true,1);   // 左向きディギー
+    drawSpr(SPR_P1,13+i*15,28,true,1);   // 左向きディギー
 }
 function drawBanners(){
   if(G.mode==="entry"){
