@@ -1522,20 +1522,21 @@ function drawWave(x0,y0,x1,y1,amp,speed){            // 波打つワイヤー（
   const len=Math.hypot(dx,dy)||1;
   const ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
   ctx.fillStyle="#F0F2FA";
-  for(let d=0;d<len;d+=2){
+  for(let d=0;d<=len;d+=1.5){
     const k=d/len;                                 // 根元0 → 先端1
-    const off=Math.sin(d*0.55-tGlobal*speed)*amp*k;
+    const env=Math.sin(k*Math.PI);                 // 両端0・中央でふくらむ蛇行エンベロープ
+    const off=Math.sin(d*0.42-tGlobal*speed)*amp*env;
     ctx.fillRect(px(x0+ux*d+nx*off)-1,px(y0+uy*d+ny*off)-1,2,2);
   }
 }
 function drawHarpoon(){
-  if(player&&player.target){                       // 接続中のホースはゆったり波打つ
-    drawWave(player.x,player.y,player.target.x,player.target.y,0.9,7);
+  if(player&&player.target){                       // 接続中のホースは大きくゆったりクネクネ
+    drawWave(player.x,player.y,player.target.x,player.target.y,3.4,7);
     return;
   }
   if(!harpoon||harpoon.len<=0)return;
   const tx=harpoon.x+harpoon.dx*harpoon.len, ty=harpoon.y+harpoon.dy*harpoon.len;
-  drawWave(harpoon.x,harpoon.y,tx,ty,0.8,22);      // 飛行中は速く細かくうねる
+  drawWave(harpoon.x,harpoon.y,tx,ty,2.6,20);      // 飛行中も波打たせる
   drawSpearTip(px(tx),px(ty),harpoon.dx,harpoon.dy);
 }
 // 赤い三角の穂先（進行方向を指す・ドット描画）
