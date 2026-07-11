@@ -611,6 +611,24 @@ function spawnPlayer(atTop){
 
 // ---------- 移動 ----------
 function centerOf(v){return Math.round((v-8)/TILE)*TILE+8;}
+// 指定方向へ1歩進めるか（世界境界＋岩の重なり）を、実際に動こうとする方向を基準に判定
+function rockBlocked(nx,ny){
+  for(const k of rocks){
+    if(k.state==="break")continue;
+    if(Math.abs(nx-k.x)<14&&Math.abs(ny-k.y)<14)return true;
+  }
+  return false;
+}
+function dirBlocked(e,dir,speed,dt){
+  const [mx,my]=DIRS[dir];
+  const cx=centerOf(e.x), cy=centerOf(e.y);
+  let nx=e.x+mx*speed*dt, ny=e.y+my*speed*dt;
+  if(mx!==0)ny=cy; else nx=cx;
+  nx=Math.max(8,Math.min(W-8,nx));
+  ny=Math.max(TILE+8,Math.min(MAPH-8,ny));
+  if(nx===e.x&&ny===e.y)return true;   // 境界で動けない
+  return rockBlocked(nx,ny);
+}
 function tryMove(e,want,speed,digs,dt){
   e.moving=false;
   if(!want)return;
@@ -622,6 +640,11 @@ function tryMove(e,want,speed,digs,dt){
     else{
       const off=(dx!==0)?Math.abs(e.y-cy):Math.abs(e.x-cx);
       if(off<=speed*dt+0.01){e.x=cx;e.y=cy;e.dir=want;}
+      // 上（等）に岩があり現在方向へ進めない時は、中心へ寄せて旋回を許可。
+      // これにより「向いている方向が塞がれていても、実際に動きたい左右方向に空間があれば移動できる」
+      else if(digs && off<=TILE*0.55 && dirBlocked(e,e.dir,speed,dt) && !dirBlocked(e,want,speed,dt)){
+        e.x=cx;e.y=cy;e.dir=want;
+      }
       // 曲がれない間は現在方向へ進み続け、次の中心で旋回（先行入力）
     }
   }
