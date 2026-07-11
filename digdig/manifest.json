@@ -3,7 +3,7 @@
   "short_name": "DIGDIG",
   "description": "戦略的穴掘りアクション by 80game",
   "start_url": "./",
-  "scope": "./",
+  "scope": "../",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#14161F",
