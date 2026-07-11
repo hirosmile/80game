@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>80game — ARCADE CLASSICS COLLECTION</title>
 <meta name="theme-color" content="#070a18">
+<script>/* Android のインストールプロンプトを取りこぼさないよう早期に確保 */
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window.__a2hsPrompt = e; });</script>
 <style>
   :root {
     --bg:#070a18; --card-bg:#0c0f22; --card-edge:#2b3ec2; --panel-edge:#20295c;
@@ -170,6 +172,39 @@
   footer { padding:12px 20px calc(24px + env(safe-area-inset-bottom)); text-align:center; }
   .credit { font-size:11px; letter-spacing:.2em; color:#5a6390; }
 
+  /* ホーム画面登録の案内（スマホのみ・画面下固定） */
+  #a2hs { position:fixed; left:0; right:0; bottom:0; z-index:70; display:none;
+    padding:14px 16px calc(14px + env(safe-area-inset-bottom));
+    background:linear-gradient(180deg, rgba(12,16,40,.98), rgba(6,9,22,.99));
+    border-top:2px solid rgba(54,78,214,.85);
+    box-shadow:0 -8px 26px rgba(0,0,0,.55), inset 0 2px 18px rgba(60,90,255,.14);
+    font-family:'Courier New', monospace; color:var(--ink); }
+  #a2hs.show { display:block; animation:a2hsUp .42s cubic-bezier(.2,.8,.25,1); }
+  @keyframes a2hsUp { from { transform:translateY(105%); } to { transform:translateY(0); } }
+  #a2hs .row { display:flex; align-items:flex-start; gap:13px; max-width:560px; margin:0 auto; position:relative; }
+  #a2hs .ico { flex:0 0 auto; width:44px; height:44px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(54,78,214,.2); border:1px solid rgba(110,140,255,.45);
+    box-shadow:0 0 12px rgba(60,90,255,.2); }
+  #a2hs h4 { font-size:13px; letter-spacing:.1em; color:var(--gold);
+    margin:1px 0 7px; text-shadow:0 0 9px rgba(255,200,80,.4); padding-right:26px; }
+  #a2hs ol { margin:0; padding:0; list-style:none; font-size:12px; line-height:1.5; color:#c9d0e2; }
+  #a2hs li { display:flex; align-items:center; gap:7px; margin:4px 0; }
+  #a2hs .step { flex:0 0 auto; width:17px; height:17px; border-radius:50%;
+    background:#2b3ec2; color:#fff; font-weight:bold; font-size:10px;
+    display:inline-flex; align-items:center; justify-content:center; }
+  #a2hs .g { width:15px; height:15px; vertical-align:-3px; }
+  #a2hs .dots { font-weight:bold; color:#fff; letter-spacing:1px; }
+  #a2hs .btn { margin-top:9px; display:inline-flex; align-items:center; gap:8px;
+    font-family:inherit; font-weight:bold; font-size:13px; letter-spacing:.08em;
+    color:#0a140e; background:linear-gradient(180deg,#ffe08a,#ffb733);
+    border:none; border-radius:8px; padding:9px 18px; box-shadow:0 3px 0 #9c6a00; cursor:pointer; }
+  #a2hs .btn:active { transform:translateY(2px); box-shadow:none; }
+  #a2hs .close { position:absolute; top:-4px; right:-4px; width:28px; height:28px;
+    border:none; border-radius:50%; background:rgba(40,50,90,.7); color:#c9d0e2;
+    font-family:inherit; font-size:14px; line-height:1; cursor:pointer; }
+  #a2hs .close:active { background:rgba(60,72,120,.9); }
+
   @media (max-width:760px) {
     .cab::before { display:none; }
     main { padding:18px 20px 6px; gap:20px; }
@@ -263,6 +298,17 @@
 <footer>
   <div class="credit">© 2026 80game&nbsp;&nbsp;ALL RIGHTS RESERVED&nbsp;&nbsp;v1.0</div>
 </footer>
+
+<div id="a2hs" role="dialog" aria-label="ホーム画面に追加">
+  <div class="row">
+    <button class="close" type="button" aria-label="閉じる">✕</button>
+    <div class="ico" id="a2hsIco"></div>
+    <div class="body">
+      <h4>ホーム画面に追加してアプリのように遊べます</h4>
+      <div id="a2hsSteps"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 "use strict";
@@ -673,6 +719,66 @@ loop();
   }
   build([null,null,null]);
   Promise.all(GAMES.map(g => top1(g.id))).then(build);
+})();
+
+// ---- ホーム画面登録の案内（スマホでアクセスした時だけ画面下に表示） ----
+(function(){
+  const el = document.getElementById('a2hs');
+  if(!el) return;
+  const ua = navigator.userAgent || '';
+  // すでにインストール済み（スタンドアロン起動）なら出さない
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if(standalone) return;
+  // 一度閉じたら再表示しない
+  if(localStorage.getItem('a2hs_dismissed') === '1') return;
+  const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isAndroid = /android/i.test(ua);
+  if(!isIOS && !isAndroid) return;   // スマホ以外（PC等）は非表示
+
+  const shareG = '<svg class="g" viewBox="0 0 24 24" fill="none" stroke="#6ec6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M6 11v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8"/></svg>';
+  const bigShare = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#6ec6ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="M8 7l4-4 4 4"/><path d="M6 11v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-8"/></svg>';
+  const bigHome  = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#8fffb8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><rect x="5" y="19" width="14" height="1.5" rx=".75" fill="#8fffb8" stroke="none"/></svg>';
+  const ico = document.getElementById('a2hsIco');
+  const steps = document.getElementById('a2hsSteps');
+
+  if(isIOS){
+    ico.innerHTML = bigShare;
+    steps.innerHTML =
+      '<ol>' +
+        '<li><span class="step">1</span>下の共有ボタン ' + shareG + ' をタップ</li>' +
+        '<li><span class="step">2</span>「ホーム画面に追加」を選択</li>' +
+      '</ol>';
+  } else {
+    ico.innerHTML = bigHome;
+    const manual =
+      '<ol>' +
+        '<li><span class="step">1</span>右上のメニュー <span class="dots">⋮</span> をタップ</li>' +
+        '<li><span class="step">2</span>「ホーム画面に追加」を選択</li>' +
+      '</ol>';
+    // Chrome のインストールプロンプトが使えるならワンタップ導線を出す
+    const prompt = window.__a2hsPrompt;
+    if(prompt){
+      steps.innerHTML = '<button class="btn" id="a2hsInstall">' + bigHome.replace('width="24" height="24"','width="16" height="16"') + 'ホーム画面に追加</button>';
+      document.getElementById('a2hsInstall').addEventListener('click', async () => {
+        try{ prompt.prompt(); await prompt.userChoice; }catch(_){}
+        window.__a2hsPrompt = null;
+        el.classList.remove('show');
+        document.body.style.paddingBottom = '';
+      });
+    } else {
+      steps.innerHTML = manual;
+    }
+  }
+
+  el.querySelector('.close').addEventListener('click', () => {
+    el.classList.remove('show');
+    localStorage.setItem('a2hs_dismissed', '1');
+    document.body.style.paddingBottom = '';
+  });
+
+  el.classList.add('show');
+  // フッターが隠れないよう本文に余白を確保
+  requestAnimationFrame(() => { document.body.style.paddingBottom = el.offsetHeight + 'px'; });
 })();
 </script>
 </body>
