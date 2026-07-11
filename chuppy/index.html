@@ -1404,7 +1404,7 @@ function drawTitle(){
   }else{
     drawLogo('CHUPPY',W/2,72,30);
   }
-  // ロゴ下のハイスコア（控えめなサイズ・広めの余白・HUDと同じ配色）
+  // ロゴ下のハイスコア（控えめなサイズ・HUDと同じ配色）
   {
     ctx.font='bold 10px monospace';
     const lbl='HI SCORE', num=(''+hi).padStart(7,'0');
@@ -1416,50 +1416,93 @@ function drawTitle(){
     ctx.fillStyle='#fff'; ctx.fillText(num,x0+lblW,hy);
     ctx.textAlign='center';
   }
-  // キャラクター紹介
+  // --- ① オンラインランキング（上位3件） ---
+  ctx.fillStyle='#ffd24d'; ctx.font='bold 12px monospace';
+  ctx.fillText('RANKING',W/2,126);
+  if(rankNote){
+    ctx.fillStyle='#8a90a8'; ctx.font='8px monospace';
+    ctx.fillText(rankNote,W/2,144);
+  }else{
+    ctx.font='10px monospace';
+    for(let i=0;i<onlineTop.length && i<3;i++){
+      const y=140+i*13;
+      const nm=String(onlineTop[i].name||'???').toUpperCase().slice(0,8);
+      const sc=String(onlineTop[i].score).padStart(6,'0');
+      ctx.textAlign='left';
+      ctx.fillStyle=i===0?'#ffd75e':'#7dffc8'; ctx.fillText(String(i+1),52,y);
+      ctx.fillStyle=i===0?'#ffd75e':'#e8e8d0'; ctx.fillText(nm,72,y);
+      ctx.textAlign='right';
+      ctx.fillStyle='#ffd76a'; ctx.fillText(sc,W-52,y);
+    }
+    ctx.textAlign='center';
+  }
+  // --- ② スタート誘導 ---
+  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 11px monospace'; ctx.fillText('PUSH BUTTON',W/2,182); }
+  // --- ③ キャラクター紹介 ---
   const rows=[
     [MOUSE,MOUSEPAL,'OFFICER','.RECOVER THE STOLEN TREASURES'],
     [CAT,CATPAL,'SNEAK CAT','.CHASES THE OFFICER AROUND'],
     [BOSS_W1,BOSSPAL,'BIG BOSS','.LEADER CAT - SOMETIMES HIDES'],
   ];
-  let ry=132;
+  let ry=210;
   for(const [spr,pal,name,desc] of rows){
     drawMap(spr,pal,50,ry-13,false);
     ctx.textAlign='left'; ctx.fillStyle='#fff'; ctx.font='9px monospace';
     ctx.fillText(name,74,ry-4);
     ctx.fillStyle='#9aa0c0'; ctx.font='7px monospace';
     ctx.fillText(desc,74,ry+6);
-    ry+=30;
+    ry+=24;
   }
   ctx.textAlign='center';
-  // --- オンラインランキング ---
-  ctx.fillStyle='#ffd24d'; ctx.font='bold 12px monospace';
-  ctx.fillText('RANKING',W/2,232);
-  if(rankNote){
-    ctx.fillStyle='#8a90a8'; ctx.font='8px monospace';
-    ctx.fillText(rankNote,W/2,262);
-  }else{
-    ctx.font='10px monospace';
-    for(let i=0;i<onlineTop.length && i<5;i++){
-      const y=252+i*15;
-      const nm=String(onlineTop[i].name||'???').toUpperCase().slice(0,8);
-      const sc=String(onlineTop[i].score).padStart(6,'0');
-      ctx.textAlign='left';
-      ctx.fillStyle=i===0?'#ffd75e':'#7dffc8'; ctx.fillText(String(i+1),44,y);
-      ctx.fillStyle=i===0?'#ffd75e':'#e8e8d0'; ctx.fillText(nm,64,y);
-      ctx.textAlign='right';
-      ctx.fillStyle='#ffd76a'; ctx.fillText(sc,W-44,y);
+  // --- ④ 高得点デモ（アイテム獲得説明） ---
+  ctx.fillStyle='#ffe66d'; ctx.font='bold 9px monospace';
+  ctx.fillText('HIGH SCORE TIPS',W/2,290);
+  {
+    const N=5, gap=40, iy=318;
+    const startX=W/2-((N-1)*gap)/2;
+    const perItem=50, walkT=18, riseDur=12, popDur=18, cycle=N*perItem+60;
+    const ph=frame%cycle;
+    const collectT=(t)=>t*perItem+walkT;
+    const cur=Math.min(N-1, Math.floor(ph/perItem));
+    const local=ph-cur*perItem;
+    const prevX=cur===0? startX-34 : startX+(cur-1)*gap;
+    const curX=startX+cur*gap;
+    let ox, walking;
+    if(ph>=N*perItem){ ox=startX+(N-1)*gap; walking=false; }
+    else if(local<walkT){ ox=prevX+(curX-prevX)*(local/walkT); walking=true; }
+    else { ox=curX; walking=false; }
+    // アイテム(未取得=棚 / 取得中=持ち上げてフェード / 取得後=消える)
+    for(let t=0;t<N;t++){
+      const ix=startX+t*gap, dt=ph-collectT(t);
+      if(dt<0){ drawItemIcon(t,ix,iy); }
+      else if(dt<riseDur){
+        const pr=dt/riseDur, e=1-(1-pr)*(1-pr);
+        ctx.globalAlpha=Math.max(0,1-pr); drawItemIcon(t,ix,iy-4-e*18); ctx.globalAlpha=1;
+      }
     }
-    ctx.textAlign='center';
+    // 主人公(歩く→掲げる)
+    const atItem=(ph<N*perItem && local>=walkT);
+    const spr=atItem?MOUSE_JUMP:(walking?((frame/6|0)%2?MOUSE_WALK1:MOUSE_WALK2):MOUSE);
+    drawMap(spr,MOUSEPAL,Math.round(ox)-8,iy-16,false);
+    // +点数: アイテムが消えた後にキャラの頭上へ
+    if(ph<N*perItem){
+      const idt=local-walkT;
+      if(idt>=riseDur && idt<riseDur+popDur){
+        const k=(idt-riseDur)/popDur;
+        ctx.globalAlpha=Math.max(0,1-k);
+        ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.textAlign='center';
+        ctx.fillText('+'+ITEMDEF[cur].pts, curX, iy-17-k*8);
+        ctx.globalAlpha=1;
+      }
+    }
+    ctx.fillStyle='#9aa0c0'; ctx.font='7px monospace'; ctx.textAlign='center';
+    ctx.fillText('GRAB ITEMS IN ORDER TO SCORE BIG', W/2, 336);
   }
-
-  ctx.fillStyle='#fff'; ctx.font='8px monospace';
-  ctx.fillText('ARROWS:MOVE   A:DOOR   B:DASH',W/2,326);
-  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 10px monospace'; ctx.fillText('PUSH BUTTON',W/2,342); }
+  // --- ⑤ ボタン操作説明 ---
+  ctx.fillStyle='#fff'; ctx.font='8px monospace'; ctx.textAlign='center';
+  ctx.fillText('ARROWS:MOVE   A:DOOR   B:DASH',W/2,351);
   ctx.fillStyle='#c7913e'; ctx.font='7px monospace';
-  ctx.fillText('© 2026 80game   ALL RIGHTS RESERVED',W/2,H-6);
-  ctx.fillStyle='#446'; ctx.font='7px monospace';
-  ctx.fillText('[B] BONUS TEST',W/2,H-16);
+  ctx.fillText('© 2026 80game   ALL RIGHTS RESERVED',W/2,H-3);
 }
 // ---------- main loop ----------
 let frame=0;
