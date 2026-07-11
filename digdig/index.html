@@ -1668,7 +1668,7 @@ async function loadRanking(){
   const rows=await sbTop(5);
   if(rows===null){onlineTop=[];rankNote='OFFLINE';}
   else if(!rows.length){onlineTop=[];rankNote='NO RECORDS YET';}
-  else{onlineTop=rows;rankNote='';}
+  else{onlineTop=rows;rankNote=''; G.hi=rows[0].score;}   // 全体ランキングの1位をハイスコアに
 }
 function qualifies(s){if(s<=0)return false;if(!onlineTop||onlineTop.length<5)return true;return s>onlineTop[onlineTop.length-1].score;}
 const neEl=document.getElementById('nameEntry');

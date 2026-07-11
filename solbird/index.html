@@ -542,9 +542,10 @@ async function loadRanking(){
   const rows = await sbTop(10);
   onlineTop = rows || [];
   renderRanking(rows);
-  if(rows && rows.length && rows[0].score > hiScore){
-    hiScore = rows[0].score;
+  if(rows && rows.length){
+    hiScore = rows[0].score;                       // 全体ランキングの1位をハイスコアに
     document.getElementById('hiTitle').textContent = 'HI-SCORE ' + hiScore;
+    const hd = document.getElementById('hi'); if(hd) hd.textContent = 'HI ' + hiScore;
   }
 }
 function qualifies(s){
