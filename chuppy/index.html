@@ -1460,14 +1460,14 @@ function drawTitle(){
     ctx.textAlign='center';
   }
   // --- ② スタート誘導 ---
-  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 11px monospace'; ctx.fillText('PUSH BUTTON',W/2,198); }
+  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 11px monospace'; ctx.fillText('PUSH BUTTON',W/2,199); }
   // --- ③ キャラクター紹介 ---
   const rows=[
     [MOUSE,MOUSEPAL,'OFFICER','.RECOVER THE STOLEN TREASURES'],
     [CAT,CATPAL,'SNEAK CAT','.CHASES THE OFFICER AROUND'],
     [BOSS_W1,BOSSPAL,'BIG BOSS','.LEADER CAT - SOMETIMES HIDES'],
   ];
-  let ry=210;
+  let ry=222;
   for(const [spr,pal,name,desc] of rows){
     drawMap(spr,pal,50,ry-13,false);
     ctx.textAlign='left'; ctx.fillStyle='#fff'; ctx.font='9px monospace';
