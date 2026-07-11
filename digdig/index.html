@@ -1390,10 +1390,10 @@ function drawTitle(){
   // オンラインランキング（上位3件）
   ctext("RANKING",100,"#FFD24D",2);
   if(rankNote){
-    ctext(rankNote,122,"#8A90A8",1);
+    ctext(rankNote,130,"#8A90A8",1);
   }else{
     for(let i=0;i<onlineTop.length && i<3;i++){
-      const y=120+i*16;
+      const y=116+i*15;
       const col=i===0?"#FFD75E":"#E8E8D0";
       drawCrown(38,y+2,i+1);
       let nm=(onlineTop[i].name||"???").toUpperCase().slice(0,8);
@@ -1402,8 +1402,10 @@ function drawTitle(){
       text(scStr,190-textW(scStr,1),y,"#FFD76A",1);
     }
   }
+  // スタート誘導（ランキング直下・緑・点滅）
+  if((Math.floor(tGlobal*60)>>4)%2===0)ctext("PUSH BUTTON",171,"#00FF88",2);
   // キャラクター得点表
-  ctext("- MONSTER SCORE -",168,"#F8F8F8",1);
+  ctext("- MONSTER SCORE -",186,"#F8F8F8",1);
   const crows=[
     [SPR_F1,  "FUWAN",  "200-500 PTS"],
     [SPR_G1,  "GABURA", "SIDE POP X2"],
@@ -1411,18 +1413,16 @@ function drawTitle(){
     [SPR_VEG[0],"BONUS","VEGETABLE"],
   ];
   for(let i=0;i<crows.length;i++){
-    const cy=182+i*18;
+    const cy=200+i*17;
     const img=crows[i][0];
     ctx.drawImage(img,40-Math.round(img.width/2),cy-Math.round(img.height/2));
     text(crows[i][1],58,cy-2,"#F8B838",1);
     text(crows[i][2],120,cy-2,"#F8F8F8",1);
   }
   // 操作ガイド（現在の入力割り当てと一致）
-  ctext("ARROWS:MOVE   A:DIG   B:PUMP",250,"#F8F8F8",1);
-  // スタート誘導（緑・点滅・PUSH BUTTON で統一）
-  if((Math.floor(tGlobal*60)>>4)%2===0)ctext("PUSH BUTTON",264,"#00FF88",2);
+  ctext("ARROWS:MOVE   A:DIG   B:PUMP",269,"#F8F8F8",1);
   // クレジット（ブラス・常時表示・非点滅・最下部）
-  ctext("© 2026 80GAME   ALL RIGHTS RESERVED",H-8,"#C7913E",1);
+  ctext("© 2026 80GAME   ALL RIGHTS RESERVED",H-6,"#C7913E",1);
 }
 function drawFlowers(){
   const n=Math.min(G.round,8);
