@@ -136,8 +136,8 @@
     --label-a:#e8b93c; --label-b:#7ec8ff; --label-sub:#c99;
     --shadow-btn:inset 0 -5px 0 rgba(0,0,0,.55), 0 2px 4px rgba(0,0,0,.4);
     --shadow-dpad:inset 0 -4px 0 rgba(0,0,0,.5);
-    --btn-size:48px; --btn-gap:9px;
-    --dpad-size:84px; --dpad-inset:7px; --dpad-radius:5px;
+    --btn-size:58px; --btn-gap:11px;
+    --dpad-size:104px; --dpad-inset:8px; --dpad-radius:6px;
   }
   #deck { flex:0 0 auto;
     padding:4px 18px calc(6px + env(safe-area-inset-bottom));
@@ -159,12 +159,12 @@
     transition:filter .05s; }
   #dcross::after { content:""; position:absolute; inset:2px; background:#242424;
     clip-path:polygon(34% 0, 66% 0, 66% 34%, 100% 34%, 100% 66%, 66% 66%, 66% 100%, 34% 100%, 34% 66%, 0 66%, 0 34%, 34% 34%); }
-  .dz { position:absolute; width:28px; height:28px; z-index:2;
+  .dz { position:absolute; width:35px; height:35px; z-index:2;
     pointer-events:none; }
-  #d-up{left:28px;top:0;} #d-down{left:28px;bottom:0;}
-  #d-left{left:0;top:28px;} #d-right{right:0;top:28px;}
+  #d-up{left:35px;top:0;} #d-down{left:35px;bottom:0;}
+  #d-left{left:0;top:35px;} #d-right{right:0;top:35px;}
   #dpad.on #dcross { filter:brightness(1.25); }
-  #d-center{position:absolute;left:28px;top:28px;width:28px;height:28px;
+  #d-center{position:absolute;left:38px;top:38px;width:28px;height:28px;
     z-index:3; pointer-events:none;
     display:flex;align-items:center;justify-content:center;}
   #d-center::after{content:"";width:12px;height:12px;border-radius:50%;
@@ -176,13 +176,13 @@
   .knob { width:var(--btn-size); height:var(--btn-size); border-radius:50%;
     background:#242424; border:2px solid var(--knob-color,#fff); padding:0;
     box-shadow:0 1px 3px rgba(0,0,0,.22);
-    font-size:17px; font-weight:bold; letter-spacing:1px; font-family:inherit;
+    font-size:20px; font-weight:bold; letter-spacing:1px; font-family:inherit;
     color:var(--knob-color,#fff);
     transition:filter .05s, transform .05s, background .05s, color .05s; }
   #btnZap  { --knob-color:var(--label-a); }
   #btnBlast{ --knob-color:var(--label-b); }
   .knob.on { transform:translateY(2px); background:var(--knob-color,#fff); color:#141414; }
-  #deckHome { border-radius:50%; width:28px; height:28px;
+  #deckHome { border-radius:50%; width:46px; height:46px; flex:0 0 auto;
     background:rgba(255,255,255,.08); border:1.5px solid rgba(255,255,255,.5);
     display:flex; align-items:center; justify-content:center;
     text-decoration:none; color:rgba(255,255,255,.85);
@@ -330,9 +330,6 @@
   </div>
 </div>
 <div id="deck">
-  <div id="deckTop">
-    <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
-  </div>
   <div id="deckMain">
   <div id="dpad">
     <div id="dcross"></div>
@@ -342,6 +339,7 @@
     <div class="dz" id="d-right"></div>
     <div class="dz" id="d-down"></div>
   </div>
+  <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
   <div id="ab">
     <div class="rBtn"><button class="knob" id="btnBlast">B</button></div>
     <div class="rBtn"><button class="knob" id="btnZap">A</button></div>

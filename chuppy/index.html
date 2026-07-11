@@ -24,7 +24,7 @@
     padding:4px 18px calc(6px + env(safe-area-inset-bottom));}
   #deckTop{display:flex;justify-content:flex-end}
   #deckMain{display:flex;align-items:center;justify-content:space-between}
-  #dpad{position:relative;width:84px;height:84px}
+  #dpad{position:relative;width:104px;height:104px}
   #dcross{position:absolute;inset:7px;background:rgba(255,255,255,.85);border-radius:5px;
     clip-path:polygon(34% 0,66% 0,66% 34%,100% 34%,100% 66%,66% 66%,66% 100%,34% 100%,34% 66%,0 66%,0 34%,34% 34%)}
   #dcross::after{content:"";position:absolute;inset:2px;background:#242424;
@@ -32,17 +32,17 @@
   .dz{position:absolute;top:0;width:50%;height:100%;z-index:2}
   #dL{left:0}#dR{right:0}
   .dz.on ~ #dcross{filter:brightness(1.25)}
-  #btns{display:flex;align-items:center;gap:9px}
-  .ab{width:48px;height:48px;border-radius:50%;background:#242424;
+  #btns{display:flex;align-items:center;gap:11px}
+  .ab{width:58px;height:58px;border-radius:50%;background:#242424;
     border:2px solid #e8b93c;color:#e8b93c;
     display:flex;flex-direction:column;align-items:center;justify-content:center;
-    font-weight:bold;font-size:17px;letter-spacing:1px;
+    font-weight:bold;font-size:20px;letter-spacing:1px;
     box-shadow:0 1px 3px rgba(0,0,0,.22)}
   #bB{border-color:#7ec8ff;color:#7ec8ff}
   .ab small{font-size:9px;color:#c99;letter-spacing:0;margin-top:2px}
   .ab.on{transform:translateY(2px);background:#e8b93c;color:#141414}
   #bB.on{background:#7ec8ff}
-  #deckHome{border-radius:50%;width:28px;height:28px;
+  #deckHome{border-radius:50%;width:46px;height:46px;flex:0 0 auto;
     background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.5);
     display:flex;align-items:center;justify-content:center;
     text-decoration:none;color:rgba(255,255,255,.85);
@@ -97,15 +97,13 @@
 <div id="wrap">
   <div id="stage"><canvas id="cv" width="256" height="368"></canvas></div>
   <div id="deck">
-    <div id="deckTop">
-      <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
-    </div>
     <div id="deckMain">
     <div id="dpad">
       <div class="dz" id="dL"></div>
       <div class="dz" id="dR"></div>
       <div id="dcross"></div>
     </div>
+    <a id="deckHome" href="../" aria-label="80game"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg></a>
     <div id="btns">
       <div class="ab" id="bB">B</div>
       <div class="ab" id="bA">A</div>
