@@ -69,6 +69,38 @@
   .titleInfo { display:flex; flex-direction:column; align-items:center;
     gap:14px; width:100%; }
   .purpose { font-size:12.5px; line-height:1.8; color:#cdd6cd; max-width:340px; }
+  /* オンラインランキング */
+  .rankList { width:100%; max-width:340px; display:flex; flex-direction:column; gap:3px; }
+  .rankRow { display:flex; align-items:center; gap:10px; font-size:12.5px;
+    padding:4px 8px; border-radius:5px; background:rgba(125,255,200,.04); }
+  .rankRow .rk { width:20px; text-align:right; color:#7dffc8; font-weight:bold; }
+  .rankRow .nm { flex:1; text-align:left; color:#e8e8d0; letter-spacing:1px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .rankRow .sc { color:#ffd76a; font-weight:bold; letter-spacing:1px; }
+  .rankRow.top1 .rk { color:#ffd75e; } .rankRow.top1 { background:rgba(255,215,94,.08); }
+  .rankNote { font-size:10px; letter-spacing:1px; color:#6a7a8a; }
+  /* スコア送信モーダル */
+  #nameEntry { position:absolute; inset:0; z-index:30; display:none;
+    flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    padding:24px; text-align:center; background:rgba(5,8,15,.92);
+    -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px); }
+  #nameEntry.show { display:flex; }
+  #nameEntry .neTitle { font-size:20px; font-weight:bold; letter-spacing:3px;
+    color:#7dff9e; text-shadow:0 0 14px rgba(125,255,158,.6); }
+  #nameEntry .neScore { font-size:15px; color:#ffd76a; letter-spacing:2px; }
+  #nameEntry input { width:min(78vw,260px); font-family:inherit; font-size:20px;
+    font-weight:bold; text-align:center; letter-spacing:4px; text-transform:uppercase;
+    color:#e8e8d0; background:#10162a; border:2px solid #2b3ec2; border-radius:8px;
+    padding:12px 10px; outline:none; }
+  #nameEntry input:focus { border-color:#7dff9e; box-shadow:0 0 12px rgba(125,255,158,.3); }
+  .neBtns { display:flex; gap:12px; }
+  #nameEntry button { font-family:inherit; font-weight:bold; font-size:14px;
+    letter-spacing:2px; padding:11px 22px; border-radius:8px; border:none; cursor:pointer; }
+  #neSubmit { color:#0a140e; background:linear-gradient(180deg,#8fffb8,#39d95d);
+    box-shadow:0 3px 0 #1e7c3c; }
+  #neSkip { color:#c9d0e2; background:#232a44; box-shadow:0 3px 0 #12162a; }
+  #nameEntry button:active { transform:translateY(2px); box-shadow:none; }
+  #neMsg { font-size:11px; letter-spacing:1px; color:#8a90a8; min-height:14px; }
   /* 敵図鑑：メタルフレームパネル（LEDインジケータ付き） */
   .foeShow { position:relative; display:flex; align-items:center; gap:14px;
     width:calc(100% - 12px); max-width:368px; min-height:110px;
@@ -254,6 +286,10 @@
       </div>
       <div class="score-line hidden" id="finalScore"></div>
       <div class="titleInfo">
+        <div class="sec-h gold">ONLINE RANKING</div>
+        <div class="rankList" id="rankList"><div class="rankNote">LOADING…</div></div>
+      </div>
+      <div class="titleInfo">
         <div class="sec-h gold">ENEMY GUIDE</div>
         <div class="foeShow">
           <canvas id="foeCv" width="96" height="96"></canvas>
@@ -280,6 +316,17 @@
         <div class="credit">© 2026 80game&nbsp;&nbsp;ALL RIGHTS RESERVED</div>
       </div>
     </div>
+  </div>
+  <div id="nameEntry">
+    <div class="neTitle">RANK IN!</div>
+    <div class="neScore" id="neScore">SCORE 0</div>
+    <input id="neInput" maxlength="8" placeholder="AAA" autocomplete="off"
+      autocapitalize="characters" spellcheck="false" enterkeyhint="done">
+    <div class="neBtns">
+      <button id="neSkip" type="button">SKIP</button>
+      <button id="neSubmit" type="button">SUBMIT</button>
+    </div>
+    <div id="neMsg"></div>
   </div>
 </div>
 <div id="deck">
@@ -400,6 +447,7 @@ function ensureAudio(){
   if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
 }
 function canStart(){
+  if(neVisible) return false;   // 名前入力モーダル表示中はリトライ抑止
   return state === 'title' || (state === 'over' && overT > 12);
 }
 function handleStartInput(){
@@ -424,6 +472,8 @@ function riseDeck(){
 }
 function returnToTitle(){
   state = 'title';
+  hideNameEntry();
+  loadRanking();
   document.getElementById('overlay').classList.remove('hidden');
   document.getElementById('deck').classList.remove('rise');
 }
@@ -435,6 +485,91 @@ cvs.addEventListener('pointerdown', e => {
   if(canStart()){ handleStartInput(); e.preventDefault(); }
 });
 document.addEventListener('contextmenu', e => e.preventDefault());
+
+// ===== オンラインハイスコア（Supabase）=====
+const SB_URL = 'https://asazrqkdeikuzhszjpxa.supabase.co';
+const SB_KEY = 'sb_publishable_28x942ZwhHz1Ai0hbrADHA_jkQbl9DN';
+const SB_GAME = 'solbird';
+let onlineTop = [];        // 直近取得したトップ配列
+let neVisible = false;     // 名前入力モーダル表示中
+let scoreHandled = false;  // 今回のゲームオーバーで送信処理済みか
+
+const SB_HEAD = { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY };
+async function sbTop(limit){
+  try{
+    const r = await fetch(SB_URL+'/rest/v1/scores?game=eq.'+SB_GAME
+      +'&select=name,score&order=score.desc&limit='+(limit||10), { headers:SB_HEAD });
+    return r.ok ? await r.json() : null;
+  }catch(_){ return null; }
+}
+async function sbSubmit(nm, sc){
+  try{
+    const r = await fetch(SB_URL+'/rest/v1/scores', {
+      method:'POST',
+      headers:{ ...SB_HEAD, 'Content-Type':'application/json', Prefer:'return=minimal' },
+      body: JSON.stringify({ game:SB_GAME, name:nm, score:sc })
+    });
+    return r.ok;
+  }catch(_){ return false; }
+}
+function renderRanking(rows){
+  const el = document.getElementById('rankList');
+  if(!rows){ el.innerHTML = '<div class="rankNote">OFFLINE — could not load ranking</div>'; return; }
+  if(!rows.length){ el.innerHTML = '<div class="rankNote">No records yet — be the first!</div>'; return; }
+  el.innerHTML = rows.map((r,i)=>{
+    const nm = String(r.name||'---').replace(/[<>&]/g,'');
+    return '<div class="rankRow'+(i===0?' top1':'')+'"><span class="rk">'+(i+1)+'</span>'
+      + '<span class="nm">'+nm+'</span><span class="sc">'+String(r.score).padStart(6,'0')+'</span></div>';
+  }).join('');
+}
+async function loadRanking(){
+  const rows = await sbTop(10);
+  onlineTop = rows || [];
+  renderRanking(rows);
+  if(rows && rows.length && rows[0].score > hiScore){
+    hiScore = rows[0].score;
+    document.getElementById('hiTitle').textContent = 'HI-SCORE ' + hiScore;
+  }
+}
+function qualifies(s){
+  if(s <= 0) return false;
+  if(!onlineTop || onlineTop.length < 10) return true;
+  return s > onlineTop[onlineTop.length-1].score;
+}
+// --- 名前入力モーダル ---
+const neEl = document.getElementById('nameEntry');
+function showNameEntry(finalScore){
+  neVisible = true;
+  document.getElementById('neScore').textContent = 'SCORE ' + String(finalScore).padStart(6,'0');
+  document.getElementById('neMsg').textContent = '';
+  const inp = document.getElementById('neInput');
+  inp.value = localStorage.getItem('solbird_name') || '';
+  neEl.classList.add('show');
+  setTimeout(()=>{ try{ inp.focus(); }catch(_){} }, 50);
+}
+function hideNameEntry(){ neVisible = false; neEl.classList.remove('show'); }
+async function doSubmit(){
+  const inp = document.getElementById('neInput');
+  let nm = inp.value.trim().toUpperCase().slice(0,8) || 'AAA';
+  localStorage.setItem('solbird_name', nm);
+  document.getElementById('neMsg').textContent = 'SENDING…';
+  const ok = await sbSubmit(nm, score);
+  if(ok){
+    document.getElementById('neMsg').textContent = 'SAVED!';
+    await loadRanking();
+    setTimeout(hideNameEntry, 600);
+  }else{
+    document.getElementById('neMsg').textContent = 'FAILED — tap SKIP to continue';
+  }
+}
+document.getElementById('neSubmit').addEventListener('click', doSubmit);
+document.getElementById('neSkip').addEventListener('click', hideNameEntry);
+document.getElementById('neInput').addEventListener('keydown', e=>{
+  e.stopPropagation();                              // ゲームのキー操作へ伝播させない
+  if(e.key === 'Enter'){ e.preventDefault(); doSubmit(); }
+});
+neEl.addEventListener('pointerdown', e=> e.stopPropagation());  // リトライへ伝播させない
+loadRanking();
 
 let state = 'title';
 let score = 0, hiScore = 20000, ships = 3, area = 1;
@@ -597,6 +732,8 @@ function startGame(){
   groundObjs = []; popups = []; allies = []; allyShots = [];
   resetForSpawn(false);
   state = 'play';
+  scoreHandled = false;
+  hideNameEntry();
   document.querySelectorAll('.titleInfo').forEach(e => e.classList.remove('hidden'));
   document.getElementById('finalScore').classList.add('hidden');
   document.getElementById('startBtn').textContent = 'PUSH START';
@@ -617,7 +754,13 @@ function addScore(n, x, y){
 
 function update(){
   frame++;
-  if(state === 'over') overT++;
+  if(state === 'over'){
+    overT++;
+    if(!scoreHandled && overT >= goTallyEnd){
+      scoreHandled = true;
+      if(qualifies(score)) showNameEntry(score);
+    }
+  }
   if(state !== 'play') return;
   if(zapCd > 0) zapCd--;
   if(blastCd > 0) blastCd--;
