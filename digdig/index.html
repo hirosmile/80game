@@ -256,11 +256,18 @@ const SKY=2;                                 // 上2段=空/地表
 const START_C=6, START_R=9;
 // ---------- 追従カメラ（酔い対策：下方向中心・戻さない・速め） ----------
 const HUD_H=24;                              // 画面上部のHUD高さ（プレイ領域から除外）
-const ANCHOR_DOWN=Math.round(HUD_H+(H-HUD_H)*0.50);   // ≈156：ここより下でカメラ追従開始
-const ANCHOR_UP=HUD_H+4;                              // ≈28：ここより上に来た時だけ画面外防止で追従
-const FOLLOW_SPEED=0.30;                              // 追従速度（ふわつき防止で従来0.15→0.30）
+let VH=H;                                     // 実ビューポート論理高さ(=H+EXTRA)。fit()で更新
+let ANCHOR_DOWN=Math.round(HUD_H+(H-HUD_H)*0.50);   // ここより下でカメラ追従開始（50%）
+const ANCHOR_UP=HUD_H+4;                             // ここより上に来た時だけ画面外防止で追従
+const FOLLOW_SPEED=0.30;                             // 追従速度（ふわつき防止で従来0.15→0.30）
 const camera={x:0,y:0};
-function camClampY(y){return Math.max(0,Math.min(MAPH-H,y));}
+function camClampY(y){return Math.max(0,Math.min(Math.max(0,MAPH-VH),y));}
+function recomputeView(){                    // 画面フィット時に実ビューポート高さ等を更新
+  VH=H+EXTRA;
+  ANCHOR_DOWN=Math.round(HUD_H+(VH-HUD_H)*0.50);
+  if(edgeCv.height!==VH)edgeCv.height=VH;    // 縁取りキャンバスもビューポートに合わせる
+  camera.y=camClampY(camera.y);
+}
 function resetCamera(){camera.y=player?camClampY(player.y-ANCHOR_DOWN):0;}
 function updateCamera(){
   if(!player)return;
@@ -604,6 +611,24 @@ function spawnPlayer(atTop){
 
 // ---------- 移動 ----------
 function centerOf(v){return Math.round((v-8)/TILE)*TILE+8;}
+// 指定方向へ1歩進めるか（世界境界＋岩の重なり）を、実際に動こうとする方向を基準に判定
+function rockBlocked(nx,ny){
+  for(const k of rocks){
+    if(k.state==="break")continue;
+    if(Math.abs(nx-k.x)<14&&Math.abs(ny-k.y)<14)return true;
+  }
+  return false;
+}
+function dirBlocked(e,dir,speed,dt){
+  const [mx,my]=DIRS[dir];
+  const cx=centerOf(e.x), cy=centerOf(e.y);
+  let nx=e.x+mx*speed*dt, ny=e.y+my*speed*dt;
+  if(mx!==0)ny=cy; else nx=cx;
+  nx=Math.max(8,Math.min(W-8,nx));
+  ny=Math.max(TILE+8,Math.min(MAPH-8,ny));
+  if(nx===e.x&&ny===e.y)return true;   // 境界で動けない
+  return rockBlocked(nx,ny);
+}
 function tryMove(e,want,speed,digs,dt){
   e.moving=false;
   if(!want)return;
@@ -615,6 +640,11 @@ function tryMove(e,want,speed,digs,dt){
     else{
       const off=(dx!==0)?Math.abs(e.y-cy):Math.abs(e.x-cx);
       if(off<=speed*dt+0.01){e.x=cx;e.y=cy;e.dir=want;}
+      // 上（等）に岩があり現在方向へ進めない時は、中心へ寄せて旋回を許可。
+      // これにより「向いている方向が塞がれていても、実際に動きたい左右方向に空間があれば移動できる」
+      else if(digs && off<=TILE*0.55 && dirBlocked(e,e.dir,speed,dt) && !dirBlocked(e,want,speed,dt)){
+        e.x=cx;e.y=cy;e.dir=want;
+      }
       // 曲がれない間は現在方向へ進み続け、次の中心で旋回（先行入力）
     }
   }
@@ -1329,14 +1359,11 @@ function drawSpr(img,x,y,flip,scale){
 }
 
 function fillExtra(){
+  // プレイ中はワールドが画面全体(VH)を覆うため固定帯は描かない。タイトル/インターのみ黒で埋める
   if(EXTRA<=0)return;
   if(G.mode==="title"||G.mode==="inter"){
-    ctx.fillStyle="#000";ctx.fillRect(0,H,W,EXTRA);return;
+    ctx.fillStyle="#000";ctx.fillRect(0,H,W,EXTRA);
   }
-  ctx.fillStyle="#4A1F10";ctx.fillRect(0,H,W,EXTRA);   // 最深層より暗い岩盤
-  ctx.fillStyle="#3A170B";
-  for(let y=0;y<EXTRA;y+=4)
-    for(let x=((y/4)%2)*4;x<W;x+=8)ctx.fillRect(x,H+y,3,1);
 }
 function render(){
   ctx.imageSmoothingEnabled=false;
@@ -1352,22 +1379,22 @@ function render(){
   }
   const camY=Math.round(camera.y);
   // 空（青空）を下地に敷く。地層(dirtCv)は地表より上が透明なので、浅い時だけ空が覗く
-  ctx.fillStyle="#2040C8";ctx.fillRect(0,0,W,H);
-  // 地層＋トンネル（可視スライスをカメラ位置から切り出して描画）
-  ctx.drawImage(dirtCv,0,camY,W,H,0,0,W,H);
+  ctx.fillStyle="#2040C8";ctx.fillRect(0,0,W,VH);
+  // 地層＋トンネル（可視スライスをカメラ位置から切り出して画面全体VHへ描画）
+  ctx.drawImage(dirtCv,0,camY,W,VH,0,0,W,VH);
   edgeCtx.globalCompositeOperation="copy";
-  edgeCtx.drawImage(tunCv,0,camY,W,H,0,0,W,H);
+  edgeCtx.drawImage(tunCv,0,camY,W,VH,0,0,W,VH);
   edgeCtx.globalCompositeOperation="source-in";
-  edgeCtx.fillStyle="#3A1C0C";edgeCtx.fillRect(0,0,W,H);
+  edgeCtx.fillStyle="#3A1C0C";edgeCtx.fillRect(0,0,W,VH);
   for(const o of [[-2,0],[2,0],[0,-2],[0,2],[-2,-2],[2,-2],[-2,2],[2,2]])
     ctx.drawImage(edgeCv,o[0],o[1]);
-  edgeCtx.fillStyle="#5E3014";edgeCtx.fillRect(0,0,W,H);
+  edgeCtx.fillStyle="#5E3014";edgeCtx.fillRect(0,0,W,VH);
   for(const o of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]])
     ctx.drawImage(edgeCv,o[0],o[1]);
-  ctx.drawImage(tunCv,0,camY,W,H,0,0,W,H);
+  ctx.drawImage(tunCv,0,camY,W,VH,0,0,W,VH);
   // 地表の草（カメラに合わせて上下）
   const gy=SKY*TILE-camY;
-  if(gy>-6&&gy<H){
+  if(gy>-6&&gy<VH){
     ctx.fillStyle="#2E8B3A";ctx.fillRect(0,gy-3,W,3);
     ctx.fillStyle="#48B857";
     for(let i=0;i<COLS*2;i++)ctx.fillRect(i*8+2,gy-5,2,2);
@@ -1680,6 +1707,7 @@ function fit(){
     ctx.setTransform(k,0,0,k,0,0);
   }
   ctx.imageSmoothingEnabled=false;
+  recomputeView();                 // 実ビューポート高さ(=H+EXTRA)を反映してワールドで画面全体を覆う
 }
 window.addEventListener("resize",fit);
 window.addEventListener("load",fit);
