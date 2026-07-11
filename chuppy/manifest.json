@@ -3,7 +3,7 @@
   "short_name": "CHUPPY",
   "description": "プラットフォームアクション by 80game",
   "start_url": "./",
-  "scope": "./",
+  "scope": "../",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",
