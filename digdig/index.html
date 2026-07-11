@@ -1652,12 +1652,19 @@ const SB_URL='https://asazrqkdeikuzhszjpxa.supabase.co';
 const SB_KEY='sb_publishable_28x942ZwhHz1Ai0hbrADHA_jkQbl9DN';
 const SB_GAME='digdig';
 const SB_HEAD={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
-let onlineTop=[], rankNote='LOADING…', neVisible=false, submitScoreVal=0;
+let onlineTop=[], rankNote='LOADING…', neVisible=false, submitScoreVal=0, submitStageVal=0;
 async function sbTop(limit){
   try{const r=await fetch(SB_URL+'/rest/v1/scores?game=eq.'+SB_GAME+'&select=name,score&order=score.desc&limit='+(limit||10),{headers:SB_HEAD});return r.ok?await r.json():null;}catch(_){return null;}
 }
-async function sbSubmit(nm,sc){
-  try{const r=await fetch(SB_URL+'/rest/v1/scores',{method:'POST',headers:Object.assign({'Content-Type':'application/json',Prefer:'return=minimal'},SB_HEAD),body:JSON.stringify({game:SB_GAME,name:nm,score:sc})});return r.ok;}catch(_){return false;}
+async function sbSubmit(nm,sc,stage){
+  const url=SB_URL+'/rest/v1/scores';
+  const hd=Object.assign({'Content-Type':'application/json',Prefer:'return=minimal'},SB_HEAD);
+  const base={game:SB_GAME,name:nm,score:sc};
+  try{
+    let r=await fetch(url,{method:'POST',headers:hd,body:JSON.stringify(stage!=null?Object.assign({},base,{stage}):base)});
+    if(!r.ok&&stage!=null&&r.status===400){ r=await fetch(url,{method:'POST',headers:hd,body:JSON.stringify(base)}); }  // stage列が未追加でも保存継続
+    return r.ok;
+  }catch(_){return false;}
 }
 async function loadRanking(){
   const rows=await sbTop(5);
@@ -1668,7 +1675,7 @@ async function loadRanking(){
 function qualifies(s){if(s<=0)return false;if(!onlineTop||onlineTop.length<5)return true;return s>onlineTop[onlineTop.length-1].score;}
 const neEl=document.getElementById('nameEntry');
 function showNameEntry(sc){
-  neVisible=true;submitScoreVal=sc;
+  neVisible=true;submitScoreVal=sc;submitStageVal=G.round;
   document.getElementById('neScore').textContent='SCORE '+String(sc).padStart(6,'0');
   document.getElementById('neMsg').textContent='';
   const inp=document.getElementById('neInput');inp.value=localStorage.getItem('digdig_name')||'';
@@ -1678,7 +1685,7 @@ function hideNameEntry(){neVisible=false;neEl.classList.remove('show');}
 async function doSubmit(){
   const inp=document.getElementById('neInput');let nm=inp.value.trim().toUpperCase().slice(0,8)||'AAA';
   localStorage.setItem('digdig_name',nm);document.getElementById('neMsg').textContent='SENDING…';
-  const ok=await sbSubmit(nm,submitScoreVal);
+  const ok=await sbSubmit(nm,submitScoreVal,submitStageVal);
   if(ok){document.getElementById('neMsg').textContent='SAVED!';await loadRanking();setTimeout(hideNameEntry,600);}
   else{document.getElementById('neMsg').textContent='FAILED — tap SKIP to continue';}
 }

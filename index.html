@@ -166,6 +166,7 @@
   .tHead { color:var(--gold); text-shadow:0 0 10px rgba(255,200,80,.5); }
   .tScore { color:#fff; }
   .tName { color:var(--dim); }
+  .tStage { color:var(--gold); }
   .tSep { color:#4a6cff; }
   @keyframes scrollTelop { from { transform:translateX(0); } to { transform:translateX(-50%); } }
 
@@ -688,16 +689,16 @@ loop();
   const SB_KEY  = 'sb_publishable_28x942ZwhHz1Ai0hbrADHA_jkQbl9DN';
   const SB_HEAD = { apikey:SB_KEY, Authorization:'Bearer '+SB_KEY };
   const GAMES = [
-    { id:'solbird', label:'SOLBIRD', color:'#5dff8e' },
-    { id:'digdig',  label:'DIGDIG',  color:'#ffb23c' },
-    { id:'chuppy',  label:'CHUPPY',  color:'#6ec6ff' },
+    { id:'solbird', label:'SOLBIRD', color:'#5dff8e', unit:'AREA'  },
+    { id:'digdig',  label:'DIGDIG',  color:'#ffb23c', unit:'ROUND' },
+    { id:'chuppy',  label:'CHUPPY',  color:'#6ec6ff', unit:'ROUND' },
   ];
   const track = document.getElementById('telopTrack');
   if(!track) return;
   const esc = s => String(s).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
   async function top1(id){
     try{
-      const r = await fetch(SB_URL+'/rest/v1/scores?game=eq.'+id+'&select=name,score&order=score.desc&limit=1', { headers:SB_HEAD });
+      const r = await fetch(SB_URL+'/rest/v1/scores?game=eq.'+id+'&select=*&order=score.desc&limit=1', { headers:SB_HEAD });
       if(!r.ok) return null;
       const d = await r.json();
       return d[0] || null;
@@ -710,9 +711,11 @@ loop();
       const s = scores[i];
       const sc = s ? String(s.score).padStart(6,'0') : '------';
       const nm = s ? esc(String(s.name).toUpperCase().slice(0,8)) : '---';
-      parts.push('<span style="color:'+g.color+'">'+g.label+'</span>'
+      let seg = '<span style="color:'+g.color+'">'+g.label+'</span>'
         + '<span class="tScore">'+sc+'</span>'
-        + '<span class="tName">'+nm+'</span>');
+        + '<span class="tName">'+nm+'</span>';
+      if(s && s.stage!=null) seg += '<span class="tStage">'+g.unit+' '+Number(s.stage)+'</span>';
+      parts.push(seg);
     });
     const seg = parts.join(sep) + sep;
     track.innerHTML = '<span class="tSeg">'+seg+'</span><span class="tSeg">'+seg+'</span>';
