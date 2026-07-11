@@ -1390,6 +1390,33 @@ function drawLogo(text,cx,cy,size){
   }
   ctx.textAlign='center';
 }
+// ランキング用の王冠（金/銀/銅・中央に順位）
+function drawCrown(cx,cy,rank){
+  const P = rank===1 ? {m:'#FFCE3A',d:'#9C6A00',l:'#FFF3B0',n:'#6E4A00'}
+          : rank===2 ? {m:'#CBD0DA',d:'#6E7480',l:'#FFFFFF',n:'#4A505C'}
+          :            {m:'#D2894A',d:'#7A4212',l:'#F2C48E',n:'#5A3010'};
+  const w=11,h=11,x=cx-w/2,y=cy-h/2,bt=y+h-4;
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x,bt);
+  ctx.lineTo(x+2,y+1.5);
+  ctx.lineTo(x+w*0.33,bt-1.5);
+  ctx.lineTo(x+w/2,y);
+  ctx.lineTo(x+w*0.67,bt-1.5);
+  ctx.lineTo(x+w-2,y+1.5);
+  ctx.lineTo(x+w,bt);
+  ctx.lineTo(x+w,y+h);
+  ctx.lineTo(x,y+h);
+  ctx.closePath();
+  ctx.fillStyle=P.m; ctx.fill();
+  ctx.fillStyle=P.d; ctx.fillRect(x,bt,w,1);            // バンドの境目
+  ctx.fillStyle=P.l;                                    // 先端の玉
+  for(const t of [[x+2,y+1.5],[x+w/2,y],[x+w-2,y+1.5]]){ ctx.beginPath(); ctx.arc(t[0],t[1],1.3,0,6.29); ctx.fill(); }
+  ctx.fillStyle=P.n; ctx.font='bold 7px monospace'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(String(rank),cx,cy+2);
+  ctx.textBaseline='alphabetic';
+  ctx.restore();
+}
 function drawTitle(){
   ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
   ctx.textAlign='center';
@@ -1416,28 +1443,29 @@ function drawTitle(){
     ctx.fillStyle='#fff'; ctx.fillText(num,x0+lblW,hy);
     ctx.textAlign='center';
   }
-  // --- ① オンラインランキング（上位3件） ---
+  // --- ① オンラインランキング（上位5件） ---
   ctx.fillStyle='#ffd24d'; ctx.font='bold 12px monospace';
-  ctx.fillText('RANKING',W/2,126);
+  ctx.fillText('RANKING',W/2,124);
   if(rankNote){
     ctx.fillStyle='#8a90a8'; ctx.font='8px monospace';
-    ctx.fillText(rankNote,W/2,144);
+    ctx.fillText(rankNote,W/2,142);
   }else{
-    ctx.font='10px monospace';
-    for(let i=0;i<onlineTop.length && i<3;i++){
-      const y=140+i*13;
+    ctx.font='9px monospace';
+    for(let i=0;i<onlineTop.length && i<5;i++){
+      const y=137+i*12;
       const nm=String(onlineTop[i].name||'???').toUpperCase().slice(0,8);
       const sc=String(onlineTop[i].score).padStart(6,'0');
+      if(i<3){ drawCrown(50,y-3,i+1); }
+      else{ ctx.textAlign='center'; ctx.fillStyle='#9aa0c0'; ctx.fillText(String(i+1),50,y); }
       ctx.textAlign='left';
-      ctx.fillStyle=i===0?'#ffd75e':'#7dffc8'; ctx.fillText(String(i+1),52,y);
-      ctx.fillStyle=i===0?'#ffd75e':'#e8e8d0'; ctx.fillText(nm,72,y);
+      ctx.fillStyle=i===0?'#ffd75e':'#e8e8d0'; ctx.fillText(nm,70,y);
       ctx.textAlign='right';
-      ctx.fillStyle='#ffd76a'; ctx.fillText(sc,W-52,y);
+      ctx.fillStyle='#ffd76a'; ctx.fillText(sc,W-50,y);
     }
     ctx.textAlign='center';
   }
   // --- ② スタート誘導 ---
-  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 11px monospace'; ctx.fillText('PUSH BUTTON',W/2,182); }
+  if((frame>>4)%2===0){ ctx.fillStyle='#0f8'; ctx.font='bold 11px monospace'; ctx.fillText('PUSH BUTTON',W/2,196); }
   // --- ③ キャラクター紹介 ---
   const rows=[
     [MOUSE,MOUSEPAL,'OFFICER','.RECOVER THE STOLEN TREASURES'],
