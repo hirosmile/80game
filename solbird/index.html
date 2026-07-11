@@ -504,13 +504,15 @@ async function sbTop(limit){
     return r.ok ? await r.json() : null;
   }catch(_){ return null; }
 }
-async function sbSubmit(nm, sc){
+async function sbSubmit(nm, sc, stage){
+  const url = SB_URL+'/rest/v1/scores';
+  const hd = { ...SB_HEAD, 'Content-Type':'application/json', Prefer:'return=minimal' };
+  const base = { game:SB_GAME, name:nm, score:sc };
   try{
-    const r = await fetch(SB_URL+'/rest/v1/scores', {
-      method:'POST',
-      headers:{ ...SB_HEAD, 'Content-Type':'application/json', Prefer:'return=minimal' },
-      body: JSON.stringify({ game:SB_GAME, name:nm, score:sc })
-    });
+    let r = await fetch(url, { method:'POST', headers:hd, body: JSON.stringify(stage!=null ? {...base, stage} : base) });
+    if(!r.ok && stage!=null && r.status===400){          // stage列が未追加でも保存は継続
+      r = await fetch(url, { method:'POST', headers:hd, body: JSON.stringify(base) });
+    }
     return r.ok;
   }catch(_){ return false; }
 }
@@ -570,7 +572,7 @@ async function doSubmit(){
   let nm = inp.value.trim().toUpperCase().slice(0,8) || 'AAA';
   localStorage.setItem('solbird_name', nm);
   document.getElementById('neMsg').textContent = 'SENDING…';
-  const ok = await sbSubmit(nm, score);
+  const ok = await sbSubmit(nm, score, area);
   if(ok){
     document.getElementById('neMsg').textContent = 'SAVED!';
     await loadRanking();
