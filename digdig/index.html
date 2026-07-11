@@ -1405,10 +1405,9 @@ function render(){
   fillExtra();
   if(G.mode==="title"){drawTitle();return;}
   if(G.mode==="inter"){
-    ctx.fillStyle="#000";ctx.fillRect(0,0,W,H);
+    ctx.fillStyle="#000";ctx.fillRect(0,0,W,VH);
     drawHUD();
-    ctext("PLAYER 1",H/2-22,"#7EC8E3",2);
-    ctext("ROUND "+G.round,H/2+6,"#FFC53D",2);
+    cmsg([{txt:"PLAYER 1",col:"#7EC8E3",sc:2},{txt:"ROUND "+G.round,col:"#FFC53D",sc:2}]);
     return;
   }
   const camY=Math.round(camera.y);
@@ -1692,26 +1691,47 @@ function drawHUD(){
   for(let i=0;i<Math.max(0,G.lives);i++)
     drawSpr(SPR_PD1,160+i*15,13,false,1);   // 自機アイコン（正面ディギー・代表形）
 }
+// 白文字＋黒縁取り（左上基準 x,y に描画）
+function otext(str,x,y,col,sc){
+  for(const o of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]])
+    text(str,x+o[0],y+o[1],"#000",sc);
+  text(str,x,y,col,sc);
+}
+// ゲーム表示領域（HUD下端〜コントローラー上端＝キャンバス下端VH）の中央に
+// 複数行メッセージを縦横中央揃えで描画。bg=trueで黒約62%の半透明背景を敷く。
+function cmsg(lines,bg){
+  const cy=Math.round((HUD_H+VH)/2), GAP=5;      // 表示領域の中央Y
+  let total=0,maxW=0;
+  lines.forEach((l,i)=>{ total+=5*l.sc+(i?GAP:0); const w=textW(l.txt,l.sc); if(w>maxW)maxW=w; });
+  let y=Math.round(cy-total/2);                   // ブロック上端（縦中央揃え）
+  if(bg){
+    const pad=8;
+    ctx.fillStyle="rgba(0,0,0,0.62)";
+    ctx.fillRect(Math.round(W/2-maxW/2)-pad, y-pad, maxW+pad*2, total+pad*2);
+  }
+  for(const l of lines){
+    if(!l.hide){
+      const x=Math.round(W/2-textW(l.txt,l.sc)/2);  // 横中央揃え
+      otext(l.txt,x,y,l.col,l.sc);                  // フォント基準を左上で統一（縦ずれ防止）
+    }
+    y+=5*l.sc+GAP;                                   // 非表示行も送りは進めレイアウト固定
+  }
+}
 function drawBanners(){
   if(G.mode==="entry"){
-    ctext("PLAYER 1",H/2-20,"#7EC8E3",2);
-    ctext("READY",H/2+6,"#F8F8F8",2);
+    cmsg([{txt:"PLAYER 1",col:"#7EC8E3",sc:2},{txt:"READY!",col:"#F8F8F8",sc:2}]);
   }else if(G.mode==="ready"){
-    banner("READY!",H/2-8,"#F8F8F8");
+    cmsg([{txt:"READY!",col:"#F8F8F8",sc:3}]);
   }else if(G.mode==="clear"){
-    banner("ROUND CLEAR!",H/2-12,"#7CFF9E");
+    cmsg([{txt:"ROUND CLEAR!",col:"#7CFF9E",sc:3}]);
   }else if(G.mode==="over"){
-    banner("GAME OVER",H/2-40,"#FF3333");
-    ctext("SCORE",H/2-2,"#FFFFFF",2);
-    ctext(String(G.score).padStart(7,"0"),H/2+16,"#FFFFFF",2);
-    ctext("HI SCORE",H/2+42,"#FFE66D",2);
-    ctext(String(G.hi).padStart(7,"0"),H/2+60,"#FFE66D",2);
-    if((Math.floor(tGlobal*60)>>4)%2===0)ctext("PUSH BUTTON",H/2+88,"#00FF88",2);
-  }
-  function banner(txt,y,col){
-    const w=textW(txt,3);
-    ctx.fillStyle="#000";ctx.fillRect(W/2-w/2-8,y-5,w+16,25);
-    text(txt,W/2-w/2,y,col,3);
+    const blink=(Math.floor(tGlobal*60)>>4)%2===0;
+    cmsg([
+      {txt:"GAME OVER",col:"#FF5A5A",sc:3},
+      {txt:"SCORE "+String(G.score).padStart(7,"0"),col:"#FFFFFF",sc:2},
+      {txt:"HI "+String(G.hi).padStart(7,"0"),col:"#FFE66D",sc:2},
+      {txt:"PUSH BUTTON",col:"#00FF88",sc:2,hide:!blink},
+    ],true);
   }
 }
 
