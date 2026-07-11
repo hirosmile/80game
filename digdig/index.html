@@ -1164,108 +1164,111 @@ function makeSprite(rows,pal){
   }
   return c;
 }
-// 主人公ディギー（2頭身ちびキャラ・白ヘルメット, 12px幅・全アングル再設計）
-const P_PAL={H:"#FFFFFF",V:"#2E78E0",L:"#BFD9FF",W:"#F4F6FF",S:"#CDD2E2",K:"#141420",O:"#F87818",C:"#FFC0A0",G:"#A8AEC4",P:"#FF9DB0",M:"#9AA0B4",D:"#5A6072"};
-// --- 下向き（正面）: 左右対称・2つ目・ほほ ---
+// 主人公ディギー（白ボディ・青バイザー・アンテナ・オレンジ足, 12px幅・全アングル再設計）
+// W:白ボディ / S:1段薄いグレー影 / G:青グレーのアクセント線 / V:青バイザー /
+// L:水色きらめき / K:濃色（目・輪郭） / O:足オレンジ(赤み少なめ) / A:アンテナ先端 /
+// M,D:ポンプの金具（横向き用）
+const P_PAL={W:"#FFFFFF",S:"#D3D9E6",G:"#93A6CE",V:"#33A6EC",L:"#C4EEFF",K:"#12141F",O:"#FFAE24",A:"#FF8C1E",M:"#9AA0B4",D:"#5A6072"};
+// --- 下向き（正面）: 顔が最も見える基準形（LIFEアイコンの代表形）---
 const SPR_PD1=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHVVVVVVHH.",
-".HVLKWWKLVH.",
-".HVWKWWKWVH.",
-".HPVKWWKVPH.",
-"..HWWKKWWH..",
+".....AA.....",   // アンテナ
+"...WWWWWW...",
 "..WWWWWWWW..",
+".KWWWWWWWWK.",   // 頭頂に濃色の分離輪郭を少しだけ
+".WVVVVVVVVW.",   // バイザー上
+".WVLKWWKLVW.",   // 目（きらめきL＋黒目K・白い鼻筋WW）
+".WVKKWWKKVW.",
+".WWVVVVVVWW.",   // バイザー下
+"..WWGGGGWW..",   // 胸のアクセント線
+".SWWWWWWWWS.",   // 両サイドにグレー影で立体感
 "..WWWWWWWW..",
-"..KKK..KKK..",
-"..OOO..OOO..",
+"..OO....OO..",   // 足
 ],P_PAL);
 const SPR_PD2=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHVVVVVVHH.",
-".HVLKWWKLVH.",
-".HVWKWWKWVH.",
-".HPVKWWKVPH.",
-"..HWWKKWWH..",
+".....AA.....",
+"...WWWWWW...",
 "..WWWWWWWW..",
+".KWWWWWWWWK.",
+".WVVVVVVVVW.",
+".WVLKWWKLVW.",
+".WVKKWWKKVW.",
+".WWVVVVVVWW.",
+"..WWGGGGWW..",
+".SWWWWWWWWS.",
 "..WWWWWWWW..",
-"....KKKK....",
-"..OOO..OOO..",
+"...OOOOOO...",   // 歩行：足を閉じる
 ],P_PAL);
-// --- 上向き（背面）: 左右対称・顔なし・頭上ノズル ---
+// --- 上向き（背面）: 顔なし・アンテナを目立たせ・背中にグレーの1ライン ---
 const SPR_PU1=makeSprite([
-".....OO.....",
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHHHHHHHHH.",
-".HHGGGGGGHH.",
-"..HWWWWWWH..",
+".....AA.....",
+".....AA.....",   // アンテナを2段でやや目立たせる
+"...WWWWWW...",
+"..WWWWWWWW..",
+".KWWWWWWWWK.",
+".WWWWWWWWWW.",
+".WWWWGGWWWW.",   // 背中の縦ライン（グレー）
+".SWWWGGWWWS.",
+"..WWWGGWWW..",
 "..WWWWWWWW..",
 "..WWWWWWWW..",
-"..WWWWWWWW..",
-"..KKK..KKK..",
-"..OOO..OOO..",
+"..OO....OO..",
 ],P_PAL);
 const SPR_PU2=makeSprite([
-".....OO.....",
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHHHHHHHHH.",
-".HHGGGGGGHH.",
-"..HWWWWWWH..",
+".....AA.....",
+".....AA.....",
+"...WWWWWW...",
+"..WWWWWWWW..",
+".KWWWWWWWWK.",
+".WWWWWWWWWW.",
+".WWWWGGWWWW.",
+".SWWWGGWWWS.",
+"..WWWGGWWW..",
 "..WWWWWWWW..",
 "..WWWWWWWW..",
-"..WWWWWWWW..",
-"....KKKK....",
-"..OOO..OOO..",
+"...OOOOOO...",
 ],P_PAL);
-// --- 右向き（横）: 直立・歩行2フレーム・ポンプ保持・目にきらめき＋ほほ ---
+// --- 右向き（横）: 顔を前寄せ・片目バイザー・ポンプ金具・前足を強調 ---
 const SPR_P1=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-"..HVVVVVVVH.",
-"..HVWLKKVVH.",   // 白目+きらめき(L)+黒目
-"..HVWWKKVPH.",   // ほほ(P)
-"..HVVVVVVVH.",
+".....AA.....",
+"...WWWWWW...",
 "..WWWWWWWW..",
-"..WWWWWWMDO.",
+"..WWVVVVVK..",   // 前側にバイザー、後頭に濃色輪郭
+"..WWVLKKVW..",   // 片目（きらめき＋黒目）
+"..WWVKKVVW..",
+"..WWVVVVVW..",
+"..WWWWWWWW..",
+"..WGGWWWMD..",   // 胸ライン＋前方にポンプ金具
 "..WWWWWWMD..",
 "..WWWWWWWW..",
-".KK...KKKK..",
-".OO....OOO..",
+".OO...OOO...",   // 後足＋前足（前足を強調）
 ],P_PAL);
 const SPR_P2=makeSprite([
-"............",
-"...HHHHHH...",
-"..HHHHHHHH..",
-"..HVVVVVVVH.",
-"..HVWLKKVVH.",
-"..HVWWKKVPH.",
-"..HVVVVVVVH.",
+".....AA.....",
+"...WWWWWW...",
 "..WWWWWWWW..",
+"..WWVVVVVK..",
+"..WWVLKKVW..",
+"..WWVKKVVW..",
+"..WWVVVVVW..",
+"..WWWWWWWW..",
+"..WGGWWWMD..",
 "..WWWWWWMD..",
-"..WWWWWWMDO.",
-".KKKK...KK..",
-".OOO....OO..",
+"..WWWWWWWW..",
+"..OOO..OO...",   // 歩行：足を入れ替え
 ],P_PAL);
 // --- やられ: ><目・手足を広げる ---
 const SPR_PKO=makeSprite([
-"...HHHHHH...",
-"..HHHHHHHH..",
-".HHHHHHHHHH.",
-".HHVVVVVVHH.",
-".HVKVWWVKVH.",
-".HVKVWWVKVH.",
-".HHVVVVVVHH.",
-"WW.WWWWWW.WW",
+".....AA.....",
+"...WWWWWW...",
 "..WWWWWWWW..",
+".WWWWWWWWWW.",
+".WVKVWWVKVW.",   // ><目
+".WVKVWWVKVW.",
+".WWVVVVVVWW.",
+"WW.WWWWWW.WW",   // 手を広げる
+"..WWGGGGWW..",
 "..WWWWWWWW..",
-".KK......KK.",
+".OO......OO.",
 ".OO......OO.",
 ],P_PAL);
 // フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣// フワン（オレンジの風船獣・大きな瞳＋ほっぺ・2フレーム）
@@ -1361,7 +1364,7 @@ makeSprite([ // なす
 const SPR_FLOWER_W=makeSprite(["..W..",".WWW.","W.Y.W",".WWW.","..G..","..G.."],{W:"#FFF2F5",Y:"#FFD24D",G:"#3AA34A"});
 const SPR_FLOWER_R=makeSprite(["..R..",".RRR.","R.Y.R",".RRR.","..G..","..G.."],{R:"#FF5A6E",Y:"#FFD24D",G:"#3AA34A"});
 // 残機アイコン
-const SPR_LIFE=makeSprite(["BBBBBB","BBBBBB","WWWWWW","WWWWWW","O....O"],{B:"#2050E8",W:"#F8F8F8",O:"#F87818"});
+const SPR_LIFE=makeSprite([".AA...","WWWWWW","VKWWKV","WWWWWW","O....O"],{A:"#FF8C1E",W:"#FFFFFF",V:"#33A6EC",K:"#12141F",O:"#FFAE24"});
 
 function drawSpr(img,x,y,flip,scale){
   scale=scale||1;
@@ -1671,7 +1674,7 @@ function drawHUD(){
   text(String(G.round).padStart(2,"0"),116,vy,WHITE,2,nAdv);
   text("LIFE",152,ly,"#7DFF9E",1);
   for(let i=0;i<Math.max(0,G.lives);i++)
-    drawSpr(SPR_P1,160+i*15,14,true,1);   // 自機アイコン（左向きディギー）
+    drawSpr(SPR_PD1,160+i*15,13,false,1);   // 自機アイコン（正面ディギー・代表形）
 }
 function drawBanners(){
   if(G.mode==="entry"){
