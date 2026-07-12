@@ -447,6 +447,8 @@ bindBtn('btnZap',   v => btnZapHeld = v);
 bindBtn('btnBlast', v => btnBlastHeld = v);
 function ensureAudio(){
   if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
+  // iOS/PWAは新規AudioContextがsuspendedで始まるため、ユーザー操作内でresume()が必須
+  if(AC.state === 'suspended') AC.resume();
 }
 function canStart(){
   if(neVisible) return false;   // 名前入力モーダル表示中はリトライ抑止
