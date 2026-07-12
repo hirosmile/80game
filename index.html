@@ -360,15 +360,19 @@ function drawSol(t){
 
 // ---- DIGDIG: 掘られた坑道でヤリ→敵をふくらませ破裂させる ----
 const dig = document.getElementById('cvDig').getContext('2d');
-const DIG_P = {H:'#FFFFFF',V:'#2E78E0',L:'#BFD9FF',W:'#F4F6FF',S:'#CDD2E2',K:'#141420',O:'#F87818',C:'#FFC0A0',G:'#A8AEC4',P:'#FF9DB0',M:'#9AA0B4',D:'#5A6072'};
+// 新デザインの横向き自機（青バイザー・大きな目・オレンジのネジ栓アンテナ・
+// 青ゲージ付きポンプ銃＋青ホース）※ゲーム本編 SPR_P1/P2 と同一
+const DIG_P = {W:'#FFFFFF',S:'#DCE1EC',s:'#AEB6CA',V:'#1E86DE',v:'#54B0F2',L:'#EAF7FF',K:'#111420',O:'#FFAA2A',o:'#E07C12',A:'#FFCB63',P:'#FF9FB2',H:'#2A93DE',h:'#12608F',M:'#CBD2DE',D:'#7E8698'};
 const DIGGY = [
-"...HHHHHH...","..HHHHHHHH..","..HVVVVVVVH.","..HVWLKKVVH.",
-"..HVWWKKVPH.","..HVVVVVVVH.","..WWWWWWWW..","..WWWWWWMDO.",
-"..WWWWWWMD..","..WWWWWWWW..",".KK...KKKK..",".OO....OOO.."];
+"....OOOOO....","....OOOOO....","...WWWWWWW...","..WWWWWWWWW..",
+".WWWWVVVVVWW.",".WWWWVLKKVWW.",".WWWWVKKVVWW.",".WWWWVVVVVWW.",
+".WWWWWWWWWWW.",".WWWOMMMMMMDM",".WWWWvMMMMM..",".WWHhhWWWWWW.",
+".HhhH........",".OO....OOO..."];
 const DIGGY2 = [
-"............","...HHHHHH...","..HHHHHHHH..","..HVVVVVVVH.",
-"..HVWLKKVVH.","..HVWWKKVPH.","..HVVVVVVVH.","..WWWWWWWW..",
-"..WWWWWWMD..","..WWWWWWMDO.",".KKKK...KK..",".OOO....OO.."];
+"....OOOOO....","....OOOOO....","...WWWWWWW...","..WWWWWWWWW..",
+".WWWWVVVVVWW.",".WWWWVLKKVWW.",".WWWWVKKVVWW.",".WWWWVVVVVWW.",
+".WWWWWWWWWWW.",".WWWOMMMMMMDM",".WWWWvMMMMM..",".WWHhhWWWWWW.",
+"..HhhH.......",".OOO...OO...."];
 const DIG_F  = {P:'#F88820',D:'#C25808',A:'#FFE0B0',W:'#F8F8F8',K:'#181828',C:'#FF9E9E'};
 const DIG_FB = {P:'#FFD090',D:'#E0983C',A:'#FFF4D8',W:'#FFFFFF',K:'#302038',C:'#FFC8C8'};
 const FUWAN = [
@@ -456,10 +460,10 @@ function drawDig(t){
   // モリ（ヤリ）：主人公前方→敵へ
   if(enemyX !== null && ph >= enemyEnterEnd && ph < pumpEnd){
     const reach = ph < harpoonEnd ? (ph-enemyEnterEnd)/(harpoonEnd-enemyEnterEnd) : 1;
-    const hx0 = heroStop + 12, hy = 64;
+    const hx0 = heroStop + 13, hy = 68;   // 新ポンプ銃の位置から発射
     const ew = enemy.rows[0].length * 2*(1+inflate*0.45);
     const hx1 = hx0 + ((enemyX - ew/2) - hx0) * reach;
-    dig.strokeStyle = '#CDD2E2'; dig.lineWidth = 2;
+    dig.strokeStyle = '#CBD2DE'; dig.lineWidth = 2;
     dig.beginPath(); dig.moveTo(hx0, hy); dig.lineTo(hx1, hy); dig.stroke();
     dig.fillStyle = '#F4F6FF'; dig.fillRect(hx1-2, hy-2, 4, 4);
   }
@@ -493,7 +497,7 @@ function drawDig(t){
   // 主人公（左→右。歩行アニメ）
   if(heroX > -20 && heroX < W+30){
     const spr = heroWalk ? ((Math.floor(t/6)%2) ? DIGGY : DIGGY2) : DIGGY;
-    drawSprite(dig, spr, DIG_P, Math.round(heroX)-12, floorY-24, 2, false);
+    drawSprite(dig, spr, DIG_P, Math.round(heroX)-13, floorY-28, 2, false);
   }
 }
 
