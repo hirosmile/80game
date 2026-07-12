@@ -445,7 +445,27 @@ function bindBtn(id, set){
 }
 bindBtn('btnZap',   v => btnZapHeld = v);
 bindBtn('btnBlast', v => btnBlastHeld = v);
+// iOSのサイレントスイッチ対策：無音のHTMLAudioをループ再生して
+// オーディオセッションをplaybackに切り替え、サイレントモードでもWebAudioを鳴らす
+let _silentEl=null;
+function _silentDataURI(){
+  const sr=8000,n=(sr/2)|0,buf=new ArrayBuffer(44+n),dv=new DataView(buf);
+  const wr=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i));};
+  wr(0,"RIFF");dv.setUint32(4,36+n,true);wr(8,"WAVE");wr(12,"fmt ");
+  dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);
+  dv.setUint32(24,sr,true);dv.setUint32(28,sr,true);dv.setUint16(32,1,true);
+  dv.setUint16(34,8,true);wr(36,"data");dv.setUint32(40,n,true);
+  for(let i=0;i<n;i++)dv.setUint8(44+i,128);
+  let bin="";const u8=new Uint8Array(buf);for(let i=0;i<u8.length;i++)bin+=String.fromCharCode(u8[i]);
+  return "data:audio/wav;base64,"+btoa(bin);
+}
+function unlockSilentSwitch(){
+  if(_silentEl)return;
+  try{_silentEl=new Audio(_silentDataURI());_silentEl.loop=true;
+    _silentEl.setAttribute("playsinline","");_silentEl.play().catch(()=>{});}catch(e){}
+}
 function ensureAudio(){
+  unlockSilentSwitch();                             // サイレントモードでも鳴らす
   if(!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
   // iOS/PWAは新規AudioContextがsuspendedで始まるため、ユーザー操作内でresume()が必須
   if(AC.state === 'suspended') AC.resume();
