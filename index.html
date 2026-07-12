@@ -457,15 +457,40 @@ function drawDig(t){
     bursting = true; burstT = ph - pumpEnd;
   }
 
-  // モリ（ヤリ）：主人公前方→敵へ
+  // ポンプを押し込む前後動（各ポンプ段階で手元が前後＝空気を入れている動き）
+  let pumpBob = 0;
+  if(inflate > 0 && ph < pumpEnd){
+    const sp = (ph - harpoonEnd) % pumpStep;
+    pumpBob = Math.sin((sp/pumpStep)*Math.PI) * 2.4;
+  }
+
+  // やりポンプ：クネクネのホース＋空気を送る脈動
   if(enemyX !== null && ph >= enemyEnterEnd && ph < pumpEnd){
     const reach = ph < harpoonEnd ? (ph-enemyEnterEnd)/(harpoonEnd-enemyEnterEnd) : 1;
-    const hx0 = heroStop + 13, hy = 68;   // 新ポンプ銃の位置から発射
+    const hx0 = heroStop + 13 + pumpBob, hy = 68;   // 押し込みで手元が前後
     const ew = enemy.rows[0].length * 2*(1+inflate*0.45);
     const hx1 = hx0 + ((enemyX - ew/2) - hx0) * reach;
-    dig.strokeStyle = '#CBD2DE'; dig.lineWidth = 2;
-    dig.beginPath(); dig.moveTo(hx0, hy); dig.lineTo(hx1, hy); dig.stroke();
-    dig.fillStyle = '#F4F6FF'; dig.fillRect(hx1-2, hy-2, 4, 4);
+    const segs = 22, pts = [];
+    for(let i=0;i<=segs;i++){
+      const u=i/segs, x=hx0+(hx1-hx0)*u;
+      // 手元側を大きく波打たせ、時間で流れる（＋押し込みで振幅UP）
+      const wob = Math.sin(u*Math.PI*5 - t*0.42) * (2.6*(0.5+0.5*(1-u)) + pumpBob*0.5);
+      pts.push([x, hy + wob]);
+    }
+    dig.strokeStyle = '#CBD2DE'; dig.lineWidth = 2; dig.lineJoin='round'; dig.lineCap='round';
+    dig.beginPath(); dig.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<pts.length;i++)dig.lineTo(pts[i][0],pts[i][1]);
+    dig.stroke();
+    // 空気の膨らみ：ポンプ1回ごとに手元→敵へ移動（空気を送っている感）
+    if(ph >= harpoonEnd){
+      const travel = ((ph - harpoonEnd)/pumpStep) % 1;
+      const [bx,by] = pts[Math.max(0,Math.min(segs,Math.round(travel*segs)))];
+      dig.fillStyle = '#EAF7FF';
+      dig.fillRect(Math.round(bx)-2, Math.round(by)-2, 5, 5);   // ぷくっとした空気玉
+    }
+    // やり穂先（銀＋光沢）
+    dig.fillStyle = '#CBD2DE'; dig.fillRect(Math.round(hx1)-1, hy-3, 3, 6);
+    dig.fillStyle = '#EAF7FF'; dig.fillRect(Math.round(hx1)-1, hy-1, 2, 2);
   }
 
   // 敵（ふくらむ・段階ごとに白フラッシュ）
@@ -497,7 +522,7 @@ function drawDig(t){
   // 主人公（左→右。歩行アニメ）
   if(heroX > -20 && heroX < W+30){
     const spr = heroWalk ? ((Math.floor(t/6)%2) ? DIGGY : DIGGY2) : DIGGY;
-    drawSprite(dig, spr, DIG_P, Math.round(heroX)-13, floorY-28, 2, false);
+    drawSprite(dig, spr, DIG_P, Math.round(heroX+pumpBob)-13, floorY-28, 2, false);   // 押し込みで前後
   }
 }
 
