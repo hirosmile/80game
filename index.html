@@ -389,9 +389,38 @@ const GABURA = [
 const DIG_LAYERS = ['#F8B838','#E87800','#C84800','#7C2818'];
 const DIG_DK = ['#E09820','#C86000','#A03800','#601C10'];
 const DIG_ENEMIES = [
-  { rows:FUWAN,  pal:DIG_F, palF:DIG_FB, cols:['#F88820','#FFE0B0','#FF9E9E','#F8F8F8'] },
-  { rows:GABURA, pal:G_PAL, palF:G_PALF, cols:['#28B898','#98E8C8','#F88030','#F8F8F8'] },
+  // eyes: 目の中心位置（スプライト内の割合・描画は左右反転flip=true適用済みの見た目基準）/ eyeW:白目色
+  { rows:FUWAN,  pal:DIG_F, palF:DIG_FB, cols:['#F88820','#FFE0B0','#FF9E9E','#F8F8F8'],
+    eyes:[{fx:0.32,fy:0.46},{fx:0.75,fy:0.46}], eyeW:'#F8F8F8' },
+  { rows:GABURA, pal:G_PAL, palF:G_PALF, cols:['#28B898','#98E8C8','#F88030','#F8F8F8'],
+    eyes:[{fx:0.30,fy:0.46}], eyeW:'#F8F8F8' },
 ];
+// 膨張段階に応じた目の表情：ふつう → >< → XX
+function drawInflateEyes(enemy, cx, baseY, s, inflate){
+  if(inflate < 1.3) return;                       // ほぼ通常時は元の目のまま
+  const x2 = inflate >= 2.4;                       // 限界近く＝XX（>< から早めに切替）
+  const w = enemy.rows[0].length, h = enemy.rows.length;
+  const topX = cx - w*s/2, topY = baseY - h*s;
+  const d = s*1.25, single = enemy.eyes.length === 1;
+  enemy.eyes.forEach((e, idx) => {
+    const ex = topX + e.fx*w*s, ey = topY + e.fy*h*s;
+    dig.fillStyle = enemy.eyeW;                     // 白目で下地を隠す
+    dig.fillRect(Math.round(ex-d-1), Math.round(ey-d-1), Math.round(2*d+2), Math.round(2*d+2));
+    dig.strokeStyle = '#181828'; dig.lineWidth = Math.max(1.6, s*0.85);
+    dig.lineCap='round'; dig.lineJoin='round'; dig.beginPath();
+    if(x2){                                         // X
+      dig.moveTo(ex-d,ey-d); dig.lineTo(ex+d,ey+d);
+      dig.moveTo(ex+d,ey-d); dig.lineTo(ex-d,ey+d);
+    } else if(single){                              // 単眼は ^ 型のしかめ目
+      dig.moveTo(ex-d,ey+d*0.5); dig.lineTo(ex,ey-d*0.6); dig.lineTo(ex+d,ey+d*0.5);
+    } else if(idx===0){                             // 左目 ">"（中央を向く）
+      dig.moveTo(ex-d,ey-d); dig.lineTo(ex+d,ey); dig.lineTo(ex-d,ey+d);
+    } else {                                        // 右目 "<"
+      dig.moveTo(ex+d,ey-d); dig.lineTo(ex-d,ey); dig.lineTo(ex+d,ey+d);
+    }
+    dig.stroke();
+  });
+}
 // 敵スプライトを中心(cx)・底(baseY)基準・任意倍率で描画
 function drawEnemyScaled(rows, pal, cx, baseY, s, flip){
   const w = rows[0].length, h = rows.length;
@@ -502,6 +531,7 @@ function drawDig(t){
       if(stagePhase < 4) pal = enemy.palF;
     }
     drawEnemyScaled(enemy.rows, pal, enemyX, floorY-2, s, true);
+    drawInflateEyes(enemy, enemyX, floorY-2, s, inflate);   // 膨張で目が >< → XX
   }
 
   // 破裂（花火状パーティクル）
