@@ -1618,7 +1618,37 @@ function drawEnemy(e){
   if(e.type==="fuwan")img=f2?SPR_F2:SPR_F1;
   else img=(e.fire==="charge"&&Math.floor(e.fireT*14)%2===0)?SPR_GF:SPR_G1;
   drawSpr(img,x,y-(e.inflate===0&&f2?1:0),e.face==="left",s);
+  drawEnemyEyes(e,s);                                // 膨張で目が >< → XX
   if(e.type==="gabura"&&e.fire==="burn")drawFire(e);
+}
+// 膨張段階に応じて敵の目を >< → XX に変化（e.x,e.y中心・倍率s）
+function drawEnemyEyes(e,s){
+  if(e.inflate<1)return;
+  const info=e.type==="fuwan"
+    ? {w:14,h:14,eyes:[[0.32,0.46],[0.75,0.46]]}
+    : {w:15,h:12,eyes:[[0.70,0.46]]};
+  const x2=e.inflate>=3, flip=e.face==="left", single=info.eyes.length===1;
+  const d=s*1.15;
+  for(const ep of info.eyes){
+    let fx=ep[0]; if(flip)fx=1-fx;
+    const ex=e.x+(fx-0.5)*info.w*s, ey=e.y+(ep[1]-0.5)*info.h*s;
+    ctx.fillStyle="#F8F8F8";                          // 白目で下地の目を隠す
+    ctx.fillRect(Math.round(ex-d-1),Math.round(ey-d-1),Math.round(2*d+2),Math.round(2*d+2));
+    ctx.strokeStyle="#181828";ctx.lineWidth=Math.max(1.4,s*0.8);
+    ctx.lineCap="round";ctx.lineJoin="round";ctx.beginPath();
+    if(x2){                                           // XX
+      ctx.moveTo(ex-d,ey-d);ctx.lineTo(ex+d,ey+d);
+      ctx.moveTo(ex+d,ey-d);ctx.lineTo(ex-d,ey+d);
+    }else if(single){                                 // 単眼は + 型のしかめ目
+      ctx.moveTo(ex-d,ey);ctx.lineTo(ex+d,ey);        // 横棒
+      ctx.moveTo(ex,ey-d);ctx.lineTo(ex,ey+d);        // 縦棒
+    }else if(fx<0.5){                                 // 左目 ">"（中央を向く）
+      ctx.moveTo(ex-d,ey-d);ctx.lineTo(ex+d,ey);ctx.lineTo(ex-d,ey+d);
+    }else{                                            // 右目 "<"
+      ctx.moveTo(ex+d,ey-d);ctx.lineTo(ex-d,ey);ctx.lineTo(ex+d,ey+d);
+    }
+    ctx.stroke();
+  }
 }
 function drawFire(e){
   const dirL=e.fireDir==="left";

@@ -411,8 +411,9 @@ function drawInflateEyes(enemy, cx, baseY, s, inflate){
     if(x2){                                         // X
       dig.moveTo(ex-d,ey-d); dig.lineTo(ex+d,ey+d);
       dig.moveTo(ex+d,ey-d); dig.lineTo(ex-d,ey+d);
-    } else if(single){                              // 単眼は ^ 型のしかめ目
-      dig.moveTo(ex-d,ey+d*0.5); dig.lineTo(ex,ey-d*0.6); dig.lineTo(ex+d,ey+d*0.5);
+    } else if(single){                              // 単眼は + 型のしかめ目
+      dig.moveTo(ex-d,ey); dig.lineTo(ex+d,ey);     // 横棒
+      dig.moveTo(ex,ey-d); dig.lineTo(ex,ey+d);     // 縦棒
     } else if(idx===0){                             // 左目 ">"（中央を向く）
       dig.moveTo(ex-d,ey-d); dig.lineTo(ex+d,ey); dig.lineTo(ex-d,ey+d);
     } else {                                        // 右目 "<"
