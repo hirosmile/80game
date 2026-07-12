@@ -1639,8 +1639,9 @@ function drawEnemyEyes(e,s){
     if(x2){                                           // XX
       ctx.moveTo(ex-d,ey-d);ctx.lineTo(ex+d,ey+d);
       ctx.moveTo(ex+d,ey-d);ctx.lineTo(ex-d,ey+d);
-    }else if(single){                                 // 単眼は ^ 型のしかめ目
-      ctx.moveTo(ex-d,ey+d*0.5);ctx.lineTo(ex,ey-d*0.6);ctx.lineTo(ex+d,ey+d*0.5);
+    }else if(single){                                 // 単眼は + 型のしかめ目
+      ctx.moveTo(ex-d,ey);ctx.lineTo(ex+d,ey);        // 横棒
+      ctx.moveTo(ex,ey-d);ctx.lineTo(ex,ey+d);        // 縦棒
     }else if(fx<0.5){                                 // 左目 ">"（中央を向く）
       ctx.moveTo(ex-d,ey-d);ctx.lineTo(ex+d,ey);ctx.lineTo(ex-d,ey+d);
     }else{                                            // 右目 "<"
