@@ -207,7 +207,7 @@
 <script>document.addEventListener('keydown', e => { if(e.key === 'Escape') location.href = '../'; });</script>
 
 <div id="screenArea">
-  <div id="bezel"><canvas id="cv" width="224" height="288"></canvas></div>
+  <div id="bezel"><canvas id="cv" width="240" height="288"></canvas></div>
 </div>
 
 <div id="deck">
@@ -249,11 +249,11 @@
    ・原作仕様準拠: 移動中のみBGM / 破裂音=高速音階 / 残1匹逃走
    ========================================================= */
 (function(){
-const TILE=16, COLS=14, ROWS=18, W=COLS*TILE, H=ROWS*TILE;   // ROWS/H＝ビューポート(画面)
+const TILE=16, COLS=15, ROWS=18, W=COLS*TILE, H=ROWS*TILE;   // COLS奇数＝中央レーンを持つ / ROWS/H＝ビューポート(画面)
 const MAPROWS=44, MAPH=MAPROWS*TILE;                          // ワールド(縦長・スクロール対象)
 const F=8, FCOLS=COLS*2, FROWS=MAPROWS*2;      // 微細セル（ワールド全体）
 const SKY=2;                                 // 上2段=空/地表
-const START_C=6, START_R=9;
+const START_C=7, START_R=9;                  // START_C=中央列(x=7*16+8=120=W/2)
 // ---------- 追従カメラ（酔い対策：下方向中心・戻さない・速め） ----------
 const HUD_H=24;                              // 画面上部のHUD高さ（プレイ領域から除外）
 let VH=H;                                     // 実ビューポート論理高さ(=H+EXTRA)。fit()で更新
@@ -1697,13 +1697,13 @@ function drawHUD(){
   // SCORE / HIGH / ROUND / LIFE の4カラム（ラベル小＋値大）
   text("SCORE",6,ly,"#FF5A6E",1);
   text(String(G.score).padStart(6,"0"),6,vy,WHITE,2,nAdv);
-  text("HIGH",62,ly,"#FFC53D",1);
-  text(String(G.hi).padStart(6,"0"),62,vy,WHITE,2,nAdv);
-  text("ROUND",116,ly,"#7EC8E3",1);
-  text(String(G.round).padStart(2,"0"),116,vy,WHITE,2,nAdv);
-  text("LIFE",152,ly,"#7DFF9E",1);
+  text("HIGH",68,ly,"#FFC53D",1);
+  text(String(G.hi).padStart(6,"0"),68,vy,WHITE,2,nAdv);
+  text("ROUND",128,ly,"#7EC8E3",1);
+  text(String(G.round).padStart(2,"0"),128,vy,WHITE,2,nAdv);
+  text("LIFE",170,ly,"#7DFF9E",1);
   for(let i=0;i<Math.max(0,G.lives);i++)
-    drawSpr(SPR_PD1,160+i*15,13,false,1);   // 自機アイコン（正面ディギー・代表形）
+    drawSpr(SPR_PD1,180+i*15,13,false,1);   // 自機アイコン（正面ディギー・代表形）
 }
 // 白文字＋黒縁取り（左上基準 x,y に描画）
 function otext(str,x,y,col,sc){
